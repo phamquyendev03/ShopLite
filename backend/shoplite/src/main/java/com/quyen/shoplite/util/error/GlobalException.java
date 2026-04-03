@@ -27,6 +27,12 @@ public class GlobalException {
                 .body(buildError(400, e.getMessage()));
     }
 
+    @ExceptionHandler(PermissionException.class)
+    public ResponseEntity<Map<String, Object>> handlePermissionException(PermissionException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(buildError(403, e.getMessage()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationException(MethodArgumentNotValidException e) {
         String message = e.getBindingResult().getFieldErrors().stream()

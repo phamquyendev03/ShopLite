@@ -1,0 +1,123 @@
+package com.quyen.shoplite.service;
+
+import com.quyen.shoplite.domain.Permission;
+import com.quyen.shoplite.domain.Role;
+import com.quyen.shoplite.domain.request.ReqRoleDTO;
+import com.quyen.shoplite.domain.response.ResRoleDTO;
+import com.quyen.shoplite.repository.RoleRepository;
+import com.quyen.shoplite.util.error.IdInvalidException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+@Service
+@RequiredArgsConstructor
+public class RoleService {
+
+    private final RoleRepository roleRepository;
+    private final PermissionService permissionService;
+
+    // ─── Create ────────────────────────────────────────────────────────────────
+    @Transactional
+    public ResRoleDTO create(ReqRoleDTO req) {
+        if (roleRepository.existsByName(req.getName())) {
+            throw new IdInvalidException("Role '" + req.getName() + "' đã tồn tại");
+        }
+        List<Permission> permissions = resolvePermissions(req.getPermissionIds());
+        Role role = Role.builder()
+                .name(req.getName())
+                .description(req.getDescription())
+                .active(req.isActive())
+                .permissions(permissions)
+                .createdAt(LocalDateTime.now())
+                .build();
+        return toDTO(roleRepository.save(role));
+    }
+
+    // ─── Get by ID ─────────────────────────────────────────────────────────────
+    public ResRoleDTO findById(Long id) {
+        Role role = roleRepository.findById(id)
+                .orElseThrow(() -> new IdInvalidException("Không tìm thấy Role id=" + id));
+        return toDTO(role);
+    }
+
+    // ─── Update ────────────────────────────────────────────────────────────────
+    @Transactional
+    public ResRoleDTO update(Long id, ReqRoleDTO req) {
+        Role role = roleRepository.findById(id)
+                .orElseThrow(() -> new IdInvalidException("Không tìm thấy Role id=" + id));
+
+        // Kiểm tra tên trùng với role khác
+        if (req.getName() != null && !req.getName().isBlank()
+                && roleRepository.existsByNameAndIdNot(req.getName(), id)) {
+            throw new IdInvalidException("Role '" + req.getName() + "' đã tồn tại");
+        }
+
+        if (req.getName() != null && !req.getName().isBlank()) role.setName(req.getName());
+        if (req.getDescription() != null) role.setDescription(req.getDescription());
+        role.setActive(req.isActive());
+        role.setUpdatedAt(LocalDateTime.now());
+
+        if (req.getPermissionIds() != null) {
+            role.setPermissions(resolvePermissions(req.getPermissionIds()));
+        }
+
+        return toDTO(roleRepository.save(role));
+    }
+
+    // ─── Delete ────────────────────────────────────────────────────────────────
+    public void delete(Long id) {
+        if (!roleRepository.existsById(id)) {
+            throw new IdInvalidException("Không tìm thấy Role id=" + id);
+        }
+        roleRepository.deleteById(id);
+    }
+
+    // ─── Get All (paginated) ───────────────────────────────────────────────────
+    public Map<String, Object> getAll(Pageable pageable) {
+        Page<Role> page = roleRepository.findAll(pageable);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("totalElements", page.getTotalElements());
+        result.put("totalPages", page.getTotalPages());
+        result.put("page", pageable.getPageNumber());
+        result.put("size", pageable.getPageSize());
+        result.put("data", page.getContent().stream().map(this::toDTO).toList());
+        return result;
+    }
+
+    // ─── Internal: find entity by name ────────────────────────────────────────
+    public Role findEntityByName(String name) {
+        return roleRepository.findByName(name).orElse(null);
+    }
+
+    // ─── Helper ────────────────────────────────────────────────────────────────
+    private List<Permission> resolvePermissions(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) return List.of();
+        return permissionService.findAllByIds(ids);
+    }
+
+    // ─── Mapper ────────────────────────────────────────────────────────────────
+    public ResRoleDTO toDTO(Role role) {
+        ResRoleDTO dto = new ResRoleDTO();
+        dto.setId(role.getId());
+        dto.setName(role.getName());
+        dto.setDescription(role.getDescription());
+        dto.setActive(role.isActive());
+        dto.setCreatedAt(role.getCreatedAt());
+        dto.setUpdatedAt(role.getUpdatedAt());
+        dto.setCreatedBy(role.getCreatedBy());
+        dto.setUpdatedBy(role.getUpdatedBy());
+        if (role.getPermissions() != null) {
+            dto.setPermissions(role.getPermissions().stream()
+                    .map(permissionService::toDTO).toList());
+        }
+        return dto;
+    }
+}

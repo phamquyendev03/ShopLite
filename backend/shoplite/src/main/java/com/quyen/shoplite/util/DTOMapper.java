@@ -18,9 +18,12 @@ public class DTOMapper {
         ResUserDTO dto = new ResUserDTO();
         dto.setId(user.getId());
         dto.setUsername(user.getUsername());
-        dto.setRole(user.getRole());
         dto.setActive(user.isActive());
         dto.setCreatedAt(user.getCreatedAt());
+        if (user.getRole() != null) {
+            dto.setRoleId(user.getRole().getId());
+            dto.setRoleName(user.getRole().getName());
+        }
         return dto;
     }
 

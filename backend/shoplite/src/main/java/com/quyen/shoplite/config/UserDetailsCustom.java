@@ -14,7 +14,7 @@ import java.util.Collections;
 
 /**
  * Implement UserDetailsService để Spring Security load user từ database.
- * Được dùng trong JwtAuthenticationFilter để xác thực token.
+ * Dùng role.name làm authority thay vì RoleEnum.
  */
 @Component
 @RequiredArgsConstructor
@@ -31,11 +31,14 @@ public class UserDetailsCustom implements UserDetailsService {
             throw new IdInvalidException("Tài khoản '" + username + "' đã bị vô hiệu hóa");
         }
 
+        // Dùng role.name từ Role entity; fallback là "USER" nếu chưa gán role
+        String roleName = (user.getRole() != null) ? user.getRole().getName() : "USER";
+
         return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getUsername())
                 .password(user.getPassword())
                 .authorities(Collections.singletonList(
-                        new SimpleGrantedAuthority("ROLE_" + user.getRole().name())))
+                        new SimpleGrantedAuthority("ROLE_" + roleName)))
                 .build();
     }
 }

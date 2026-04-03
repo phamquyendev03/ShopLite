@@ -1,6 +1,5 @@
 package com.quyen.shoplite.domain;
 
-import com.quyen.shoplite.util.constant.RoleEnum;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -25,9 +24,13 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private RoleEnum role;
+    /**
+     * Thay từ RoleEnum → Role entity để hỗ trợ permission động.
+     * Một User chỉ có MỘT role.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "role_id")
+    private Role role;
 
     @Column(name = "is_active", nullable = false)
     private boolean isActive;

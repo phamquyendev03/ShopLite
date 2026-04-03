@@ -1,6 +1,5 @@
 package com.quyen.shoplite.domain.response;
 
-import com.quyen.shoplite.util.constant.RoleEnum;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -26,6 +25,6 @@ public class ResLoginDTO {
     public static class UserInfo {
         private Integer id;
         private String username;
-        private RoleEnum role;
+        private String roleName;    // Tên role (thay RoleEnum)
     }
 }

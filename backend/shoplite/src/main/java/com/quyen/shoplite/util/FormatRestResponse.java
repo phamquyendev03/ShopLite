@@ -1,5 +1,7 @@
 package com.quyen.shoplite.util;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.quyen.shoplite.util.annotation.ApiMessage;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -65,6 +67,15 @@ public class FormatRestResponse implements ResponseBodyAdvice<Object> {
         result.put("statusCode", statusCode);
         result.put("message", message);
         result.put("data", body);
+
+        if (body instanceof String) {
+            try {
+                return new ObjectMapper().writeValueAsString(result);
+            } catch (JsonProcessingException e) {
+                return result.toString();
+            }
+        }
+
         return result;
     }
 }

@@ -49,7 +49,7 @@ public class AuthController {
      */
     @GetMapping("/me")
     @ApiMessage("Lấy thông tin người dùng hiện tại")
-    public ResponseEntity<String> getCurrentUser(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<Object> getCurrentUser(@AuthenticationPrincipal Jwt jwt) {
         if (jwt == null) {
             throw new IdInvalidException("Chưa đăng nhập");
         }
