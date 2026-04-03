@@ -1,0 +1,48 @@
+<ion-content color="light">
+  <div class="login-wrapper fade-in">
+    <!-- Header Logo -->
+    <div class="login-header ion-text-center">
+      <div class="logo-box">
+        <ion-icon name="cart-outline" color="primary"></ion-icon>
+      </div>
+      <h2>ShopLite</h2>
+      <p>Please sign in to continue</p>
+    </div>
+      
+    <!-- Login Form -->
+    <div class="login-card shadow-card">
+      <form (ngSubmit)="onLogin()">
+        
+        <div class="input-group">
+          <ion-item lines="none" class="rounded-input">
+            <ion-icon name="person-outline" slot="start" color="medium"></ion-icon>
+            <ion-input label="Username" labelPlacement="floating" type="text" [(ngModel)]="username" name="username" required></ion-input>
+          </ion-item>
+        </div>
+        
+        <div class="input-group mt-3">
+          <ion-item lines="none" class="rounded-input">
+            <ion-icon name="lock-closed-outline" slot="start" color="medium"></ion-icon>
+            <ion-input label="Password" labelPlacement="floating" type="password" [(ngModel)]="password" name="password" required></ion-input>
+          </ion-item>
+        </div>
+        
+        <div class="forgot-link ion-text-right">
+          <a>Forgot Password?</a>
+        </div>
+        
+        <div class="ion-margin-top">
+          <ion-button class="custom-btn" color="primary" expand="block" shape="round" type="submit" [disabled]="loading || !username || !password">
+            {{ loading ? 'Logging in...' : 'Login' }}
+          </ion-button>
+        </div>
+        
+      </form>
+    </div>
+
+    <!-- Register Link -->
+    <div class="register-link ion-text-center">
+      <p>Don't have an account? <a>Register</a></p>
+    </div>
+  </div>
+</ion-content>

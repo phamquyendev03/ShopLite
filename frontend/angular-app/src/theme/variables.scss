@@ -1,0 +1,56 @@
+// Ionic Custom Theme Variables
+:root {
+  /** primary (Blue) **/
+  --ion-color-primary: #1e67fa;
+  --ion-color-primary-rgb: 30, 103, 250;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #1a5be0;
+  --ion-color-primary-tint: #3576fb;
+
+  /** secondary **/
+  --ion-color-secondary: #00d2ff;
+  --ion-color-secondary-rgb: 0, 210, 255;
+  --ion-color-secondary-contrast: #ffffff;
+
+  /** tertiary **/
+  --ion-color-tertiary: #5260ff;
+  --ion-color-tertiary-rgb: 82, 96, 255;
+  --ion-color-tertiary-contrast: #ffffff;
+
+  /** success **/
+  --ion-color-success: #2dd36f;
+  --ion-color-success-rgb: 45, 211, 111;
+  --ion-color-success-contrast: #ffffff;
+
+  /** warning **/
+  --ion-color-warning: #ffc409;
+  --ion-color-warning-rgb: 255, 196, 9;
+  --ion-color-warning-contrast: #000000;
+
+  /** danger **/
+  --ion-color-danger: #eb445a;
+  --ion-color-danger-rgb: 235, 68, 90;
+  --ion-color-danger-contrast: #ffffff;
+
+  /** accent / call to action (Orange) **/
+  --ion-color-accent: #ff6e40;
+  --ion-color-accent-rgb: 255, 110, 64;
+  --ion-color-accent-contrast: #ffffff;
+  --ion-color-accent-shade: #df6037;
+  --ion-color-accent-tint: #ff7d53;
+
+  /** background styles **/
+  --ion-background-color: #f7f9fd;
+  --ion-text-color: #333333;
+}
+
+// Support for accent color utility class
+.ion-color-accent {
+  --ion-color-base: var(--ion-color-accent);
+  --ion-color-base-rgb: var(--ion-color-accent-rgb);
+  --ion-color-contrast: var(--ion-color-accent-contrast);
+  --ion-color-contrast-rgb: var(--ion-color-accent-contrast-rgb);
+  --ion-color-shade: var(--ion-color-accent-shade);
+  --ion-color-tint: var(--ion-color-accent-tint);
+}

@@ -1,0 +1,99 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar color="primary">
+    <ion-title>ShopLite</ion-title>
+    <ion-buttons slot="end">
+      <ion-button routerLink="/cart">
+        <ion-icon slot="icon-only" name="cart-outline"></ion-icon>
+      </ion-button>
+      <ion-button routerLink="/profile">
+        <ion-icon slot="icon-only" name="person-circle-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+  <ion-toolbar color="primary">
+    <ion-searchbar class="custom-search" searchIcon="search-outline" placeholder="Tìm kiếm sản phẩm..." mode="ios"
+      debounce="400" (ionInput)="onSearch($event)">
+    </ion-searchbar>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content color="light">
+
+  <!-- Category chips (load từ API) -->
+  <div class="categories-scroll ion-padding-horizontal ion-padding-top">
+    <ion-chip [color]="selectedCategoryId === null ? 'primary' : 'medium'" (click)="selectCategory(null)">
+      Tất cả
+    </ion-chip>
+    <ion-chip *ngFor="let cat of categories" [color]="selectedCategoryId === cat.id ? 'primary' : 'medium'"
+      (click)="selectCategory(cat.id)">
+      {{ cat.name }}
+    </ion-chip>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="ion-text-center ion-padding">
+    <ion-spinner color="primary"></ion-spinner>
+    <p class="loading-text">Đang tải sản phẩm...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="!loading && errorMsg" class="ion-text-center ion-padding error-state">
+    <ion-icon name="alert-circle-outline" color="danger" size="large"></ion-icon>
+    <p>{{ errorMsg }}</p>
+  </div>
+
+  <!-- Product Grid -->
+  <ion-grid *ngIf="!loading && products.length > 0" class="ion-padding">
+    <div class="results-info ion-padding-bottom">
+      <ion-text color="medium">
+        <small>{{ totalElements }} sản phẩm</small>
+      </ion-text>
+    </div>
+    <ion-row>
+      <ion-col size="6" size-md="4" size-lg="3" *ngFor="let product of products">
+        <ion-card class="product-card shadow-card" [routerLink]="['/products', product.id]">
+          <div class="product-image">
+            <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=300&q=80"
+              [alt]="product.name">
+          </div>
+          <ion-card-content class="ion-no-padding content-box">
+            <p class="product-category">{{ product.categoryName }}</p>
+            <h3 class="product-title">{{ product.name }}</h3>
+            <p class="product-sku">SKU: {{ product.sku }}</p>
+            <div class="price-row">
+              <span class="product-price">{{ product.price | currency:'VND':'symbol':'1.0-0' }}</span>
+              <div class="add-btn">
+                <ion-icon name="add-outline"></ion-icon>
+              </div>
+            </div>
+            <div class="stock-row">
+              <ion-badge [color]="product.stock > 0 ? 'success' : 'danger'" class="stock-badge">
+                {{ product.stock > 0 ? 'Còn hàng (' + product.stock + ')' : 'Hết hàng' }}
+              </ion-badge>
+            </div>
+          </ion-card-content>
+        </ion-card>
+      </ion-col>
+    </ion-row>
+
+    <!-- Pagination -->
+    <div class="pagination-row" *ngIf="totalPages > 1">
+      <ion-button fill="outline" size="small" (click)="prevPage()" [disabled]="currentPage === 0">
+        <ion-icon slot="start" name="chevron-back-outline"></ion-icon>
+        Trước
+      </ion-button>
+      <ion-label color="medium">Trang {{ currentPage + 1 }} / {{ totalPages }}</ion-label>
+      <ion-button fill="outline" size="small" (click)="nextPage()" [disabled]="currentPage >= totalPages - 1">
+        Tiếp
+        <ion-icon slot="end" name="chevron-forward-outline"></ion-icon>
+      </ion-button>
+    </div>
+  </ion-grid>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && !errorMsg && products.length === 0" class="ion-text-center ion-padding empty-state">
+    <ion-icon name="cube-outline" color="medium"></ion-icon>
+    <p>Không tìm thấy sản phẩm.</p>
+  </div>
+
+</ion-content>

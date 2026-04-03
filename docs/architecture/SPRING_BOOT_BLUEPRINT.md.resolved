@@ -626,4 +626,100 @@ Request có token:
 
 ---
 
+## 15. Testing Pattern (Unit & Integration)
+
+Dự án chuẩn sử dụng **JUnit 5**, **Mockito** (cho Unit Test) và **Spring Boot Test + H2 Database** (cho Integration Test).
+
+### 15.1 Unit Test (Service Layer)
+
+- **Mục tiêu**: Test logic nghiệp vụ cô lập, không khởi động Spring Context, tốc độ cực nhanh.
+- **Công cụ**: `@ExtendWith(MockitoExtension.class)`, `@Mock`, `@InjectMocks`.
+
+```java
+@ExtendWith(MockitoExtension.class)
+class [X]ServiceTest {
+
+    @Mock private [X]Repository repository;
+    @InjectMocks private [X]Service service;
+
+    @Test
+    @DisplayName("Test tạo [X] thành công")
+    void create_Success() {
+        // 1. Arrange (Setup mock)
+        when(repository.existsByUniqueField("value")).thenReturn(false);
+        when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // 2. Act (Thực thi)
+        Res[X]DTO res = service.create(req);
+
+        // 3. Assert (Kiểm tra)
+        assertNotNull(res);
+        verify(repository, times(1)).save(any());
+    }
+}
+```
+
+### 15.2 Integration Test (Controller Layer)
+
+- **Mục tiêu**: Test toàn bộ luồng API từ HTTP Request → Security/Permission → Controller → Service → Database (sử dụng H2 in-memory).
+- **Công cụ**: `@SpringBootTest`, `@AutoConfigureMockMvc`, `MockMvc`.
+- **Cấu hình**: Cần file `src/test/resources/application-test.properties` cấu hình H2 dạng MySQL Mode:
+
+```properties
+spring.datasource.url=jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+spring.datasource.driverClassName=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=
+spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
+spring.jpa.hibernate.ddl-auto=create-drop
+
+# Secret dùng chung khi chạy mock test
+[app].jwt.base64-secret=[BASE64_SECRET]
+```
+
+- **Lưu ý Quan Trọng (Permission Seeding)**: Do `PermissionInterceptor` chặn mọi request (trừ public endpoint) dựa trên schema DB, bạn **BẮT BUỘC** phải seed dữ liệu Permission, Role và User vào DB (H2) qua `@BeforeEach` trong class test mới gửi Request thành công (nếu không sẽ bị `403 Forbidden`).
+
+```java
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("test") // Trỏ vào application-test.properties
+// Chạy test theo đúng thứ tự (VD: tạo -> lấy danh sách -> xoá)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+class [X]ControllerIntegrationTest {
+
+    @Autowired MockMvc mockMvc;
+    @Autowired ObjectMapper objectMapper;
+    // Autowire repositories...
+
+    private static String accessToken; // Share token giữa các Test steps
+
+    @BeforeEach
+    void setUp() {
+        // 1. Seed Permission: POST /api/v1/xxx
+        // 2. Seed Role gán Permission trên
+        // 3. Seed User nhận Role trên
+        // 4. Sinh accessToken bằng SecurityUtil
+    }
+
+    @Test
+    @Order(1)
+    @DisplayName("✅ POST /api/v1/xxx - Trả về 201")
+    void create_Returns201() throws Exception {
+        mockMvc.perform(post("/api/v1/[resources]")
+                .header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(reqDto)))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.data.id").exists());
+    }
+}
+```
+
+### 15.3 Kinh Nghiệm Test API Spring Boot Thực Tế
+- **MockMvc & JSON Parsing**: Response của ứng dụng dùng `FormatRestResponse` luôn là định dạng `{"statusCode":..., "message":..., "data":...}`. Vì thế assertions luôn truy cập qua root node `$.data`.
+- **Fix Serializer ClassCast**: Nếu Controller return một Object thuần là `String` nhưng lại bị `FormatRestResponse` can thiệp trả về `LinkedHashMap` gây lỗi `500 ClassCastException` với `StringHttpMessageConverter`. Đó là lý do trong `FormatRestResponse` phải tự detect String type và chủ động serialize sang JSON String trả về. Đừng nhầm lẫn tưởng do test sai.
+- **H2 Test Warnings**: Console test đôi khi hiện ddl warning như `Table "..." not found` lúc boot lên là bình thường (hibernate tạo table / relations drop cascade trước khi bảng tồn tại).
+
+---
+
 *Blueprint tổng hợp từ ShopLite — Spring Boot 3.2.4, Java 17*
