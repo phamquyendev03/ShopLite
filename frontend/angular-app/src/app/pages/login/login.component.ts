@@ -2,11 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import {
-  IonContent, IonHeader, IonTitle, IonToolbar,
-  IonList, IonItem, IonInput, IonButton,
-  ToastController, IonIcon
-} from '@ionic/angular/standalone';
+import { IonContent, ToastController } from '@ionic/angular/standalone';
 import { AuthService } from '../../core';
 
 @Component({
@@ -15,14 +11,21 @@ import { AuthService } from '../../core';
   styleUrls: ['./login.component.scss'],
   standalone: true,
   imports: [
-    CommonModule, FormsModule,
-    IonContent, IonHeader, IonTitle, IonToolbar,
-    IonList, IonItem, IonInput, IonButton, IonIcon
+    CommonModule,
+    FormsModule,
+    IonContent
   ]
 })
 export class LoginComponent {
   username = '';
   password = '';
+  showPasswordLogin = false;
+
+  regPhone = '';
+  regPassword = '';
+  showPasswordReg = false;
+
+  currentView: 'login' | 'register' = 'login';
   loading = false;
 
   constructor(
@@ -30,6 +33,10 @@ export class LoginComponent {
     private router: Router,
     private toastCtrl: ToastController
   ) { }
+
+  toggleView(view: 'login' | 'register') {
+    this.currentView = view;
+  }
 
   async onLogin() {
     if (!this.username || !this.password) return;
@@ -39,16 +46,16 @@ export class LoginComponent {
       next: async (res) => {
         this.loading = false;
         const toast = await this.toastCtrl.create({
-          message: 'Login successful!',
+          message: 'Đăng nhập thành công!',
           duration: 2000,
           color: 'success'
         });
         await toast.present();
-        this.router.navigate(['/products']);
+        this.router.navigate(['/tabs']);
       },
       error: async (err) => {
         this.loading = false;
-        const errorMsg = err.error?.message || err.message || 'Login failed';
+        const errorMsg = err.error?.message || err.message || 'Đăng nhập thất bại';
         const toast = await this.toastCtrl.create({
           message: errorMsg,
           duration: 3000,
@@ -57,5 +64,28 @@ export class LoginComponent {
         await toast.present();
       }
     });
+  }
+
+  async onRegister() {
+    if (!this.regPhone || !this.regPassword) return;
+
+    this.loading = true;
+
+    setTimeout(async () => {
+      this.loading = false;
+      const toast = await this.toastCtrl.create({
+        message: 'Đăng ký thành công! Hãy đăng nhập.',
+        duration: 3000,
+        color: 'success'
+      });
+      await toast.present();
+
+      this.username = this.regPhone;
+      this.password = this.regPassword;
+      this.toggleView('login');
+
+      this.regPhone = '';
+      this.regPassword = '';
+    }, 1000);
   }
 }

@@ -6,9 +6,9 @@ import { environment } from '../../../environments/environment';
 import { LoginResponse, UserInfo } from '../../models/auth.model';
 
 /** Keys lưu trong storage */
-const ACCESS_TOKEN_KEY  = 'access_token';
+const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
-const USER_INFO_KEY     = 'user_info';
+const USER_INFO_KEY = 'user_info';
 
 /**
  * AuthService — Xử lý toàn bộ luồng xác thực.
@@ -26,7 +26,7 @@ export class AuthService {
   constructor(
     private http: HttpClient,
     private storage: StorageService
-  ) {}
+  ) { }
 
   /**
    * Đăng nhập — gửi username + password.
@@ -35,6 +35,24 @@ export class AuthService {
   login(username: string, password: string): Observable<LoginResponse> {
     return this.http
       .post<LoginResponse>(`${this.apiUrl}/auth/login`, { username, password })
+      .pipe(
+        tap((res: any) => {
+          // Interceptor đã unwrap → res là LoginResponse trực tiếp
+          this.saveToken(res.accessToken, res.refreshToken);
+          if (res.user) {
+            this.storage.setItem(USER_INFO_KEY, JSON.stringify(res.user));
+          }
+        })
+      );
+  }
+
+  /**
+   * Đăng ký — gửi username + password.
+   * Response (sau interceptor unwrap): LoginResponse { accessToken, refreshToken, user }
+   */
+  register(username: string, password: string): Observable<LoginResponse> {
+    return this.http
+      .post<LoginResponse>(`${this.apiUrl}/auth/register`, { username, password })
       .pipe(
         tap((res: any) => {
           // Interceptor đã unwrap → res là LoginResponse trực tiếp

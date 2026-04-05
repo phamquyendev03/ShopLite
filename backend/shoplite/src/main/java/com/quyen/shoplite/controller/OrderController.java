@@ -27,7 +27,7 @@ public class OrderController {
 
     @GetMapping("/{id}")
     @ApiMessage("Lấy thông tin đơn hàng")
-    public ResponseEntity<ResOrderDTO> findById(@PathVariable Integer id) {
+    public ResponseEntity<ResOrderDTO> findById(@PathVariable("id") Integer id) {
         return ResponseEntity.ok(orderService.findById(id));
     }
 
@@ -40,8 +40,8 @@ public class OrderController {
     @PatchMapping("/{id}/status")
     @ApiMessage("Cập nhật trạng thái đơn hàng")
     public ResponseEntity<ResOrderDTO> updateStatus(
-            @PathVariable Integer id,
-            @RequestParam StatusEnum status) {
+            @PathVariable("id") Integer id,
+            @RequestParam("status") StatusEnum status) {
         return ResponseEntity.ok(orderService.updateStatus(id, status));
     }
 }

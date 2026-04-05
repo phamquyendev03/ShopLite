@@ -1,9 +1,9 @@
 <ion-header class="ion-no-border">
-  <ion-toolbar color="primary">
+  <ion-toolbar class="page-header-toolbar">
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/products"></ion-back-button>
     </ion-buttons>
-    <ion-title>Product Detail</ion-title>
+    <ion-title>Chi tiết sản phẩm</ion-title>
     <ion-buttons slot="end">
       <ion-button routerLink="/cart">
         <ion-icon slot="icon-only" name="cart-outline"></ion-icon>
@@ -13,13 +13,12 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content color="light">
+<ion-content class="detail-content" [fullscreen]="true">
   <div *ngIf="loading" class="ion-text-center ion-padding">
     <ion-spinner color="primary"></ion-spinner>
   </div>
 
   <div *ngIf="!loading && product">
-    <!-- Image Slideshow Placeholder -->
     <div class="product-cover">
       <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80"
         alt="Cover Image" />

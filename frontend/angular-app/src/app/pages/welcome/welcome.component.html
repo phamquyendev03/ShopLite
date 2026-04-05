@@ -1,12 +1,18 @@
-<ion-content color="primary">
-  <div class="welcome-container fade-in">
-    <div class="logo">
-      <!-- Icon placeholder cho Logo -->
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="#ffffff" width="100px" height="100px">
-        <path d="M160 96.039v32h-16c-26.51 0-48 21.49-48 48V464c0 26.51 21.49 48 48 48h336c26.51 0 48-21.49 48-48V176.039c0-26.51-21.49-48-48-48h-16v-32C464 42.996 421.004 0 368 0H256C202.996 0 160 42.996 160 96.039zM256 32h112c8.837 0 16 7.163 16 16v48.039H240V48C240 39.163 247.163 32 256 32zM336 296v48c0 13.255-10.745 24-24 24s-24-10.745-24-24v-48c0-13.255 10.745-24 24-24s24 10.745 24 24zm80 0v48c0 13.255-10.745 24-24 24s-24-10.745-24-24v-48c0-13.255 10.745-24 24-24s24 10.745 24 24zm-160 0v48c0 13.255-10.745 24-24 24s-24-10.745-24-24v-48c0-13.255 10.745-24 24-24s24 10.745 24 24z"/>
-      </svg>
+<ion-content class="welcome-content" [fullscreen]="true">
+  <div class="welcome-shell fade-in">
+    <div class="welcome-hero">
+      <div class="orb orb-a"></div>
+      <div class="orb orb-b"></div>
+
+      <div class="logo-mark" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="currentColor" width="68" height="68">
+          <path
+            d="M160 96.039v32h-16c-26.51 0-48 21.49-48 48V464c0 26.51 21.49 48 48 48h336c26.51 0 48-21.49 48-48V176.039c0-26.51-21.49-48-48-48h-16v-32C464 42.996 421.004 0 368 0H256C202.996 0 160 42.996 160 96.039zM256 32h112c8.837 0 16 7.163 16 16v48.039H240V48C240 39.163 247.163 32 256 32zM336 296v48c0 13.255-10.745 24-24 24s-24-10.745-24-24v-48c0-13.255 10.745-24 24-24s24 10.745 24 24zm80 0v48c0 13.255-10.745 24-24 24s-24-10.745-24-24v-48c0-13.255 10.745-24 24-24s24 10.745 24 24zm-160 0v48c0 13.255-10.745 24-24 24s-24-10.745-24-24v-48c0-13.255 10.745-24 24-24s24 10.745 24 24z" />
+        </svg>
+      </div>
+
+      <h1 class="brand-name">ShopLite</h1>
+      <p class="slogan">Nền tảng bán hàng đơn giản, nhanh và ổn định</p>
     </div>
-    <h1 class="brand-name">ShopLite</h1>
-    <p class="slogan">Shopping made simple</p>
   </div>
 </ion-content>

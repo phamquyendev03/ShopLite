@@ -1,11 +1,17 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import {
   IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonBackButton,
   IonList, IonItem, IonThumbnail, IonLabel, IonIcon, IonButton, IonFooter,
-  IonText
+  ToastController
 } from '@ionic/angular/standalone';
+import { CartService, CartItem } from '../../core/services/cart.service';
+import { OrderService } from '../../core/services/order.service';
+import { AuthService } from '../../core/services/auth.service';
+import { CreateOrderRequest } from '../../models/order.model';
+import { PaymentMethodEnum } from '../../models/enums.model';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-cart',
@@ -13,53 +19,96 @@ import {
   styleUrls: ['./cart.component.scss'],
   standalone: true,
   imports: [
-    CommonModule,
+    CommonModule, RouterModule,
     IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonBackButton,
-    IonList, IonItem, IonThumbnail, IonLabel, IonIcon, IonButton, IonFooter,
-    IonText
+    IonList, IonItem, IonThumbnail, IonLabel, IonIcon, IonButton, IonFooter
   ]
 })
-export class CartComponent implements OnInit {
-  // Mock cart items for UI purposes
-  cartItems: any[] = [
-    {
-      id: 1,
-      name: 'Macbook Pro M2 2023',
-      price: 32000000,
-      quantity: 1,
-      image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=200&q=80'
-    },
-    {
-      id: 2,
-      name: 'Sony WH-1000XM5 Headphones',
-      price: 8500000,
-      quantity: 2,
-      image: 'https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?auto=format&fit=crop&w=200&q=80'
-    }
-  ];
+export class CartComponent implements OnInit, OnDestroy {
+  cartItems: CartItem[] = [];
+  private cartSub!: Subscription;
 
-  constructor() { }
-  ngOnInit() { }
+  constructor(
+    private cartService: CartService,
+    private orderService: OrderService,
+    private authService: AuthService,
+    private router: Router,
+    private toastCtrl: ToastController
+  ) { }
+
+  ngOnInit() {
+    this.cartSub = this.cartService.cartItems$.subscribe(items => {
+      this.cartItems = items;
+    });
+  }
+
+  ngOnDestroy() {
+    if (this.cartSub) this.cartSub.unsubscribe();
+  }
 
   get total(): number {
-    return this.cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    return this.cartService.getTotalPrice();
   }
 
-  increaseQuantity(item: any) {
-    item.quantity++;
+  increaseQuantity(item: CartItem) {
+    this.cartService.updateQuantity(item.product.id, item.quantity + 1);
   }
 
-  decreaseQuantity(item: any) {
+  decreaseQuantity(item: CartItem) {
     if (item.quantity > 1) {
-      item.quantity--;
+      this.cartService.updateQuantity(item.product.id, item.quantity - 1);
     }
   }
 
-  removeItem(item: any) {
-    this.cartItems = this.cartItems.filter(i => i.id !== item.id);
+  removeItem(item: CartItem) {
+    this.cartService.removeFromCart(item.product.id);
   }
 
-  checkout() {
-    console.log('Proceed to checkout', this.cartItems);
+  async checkout() {
+    const user = this.authService.getCurrentUser();
+    if (!user) {
+      this.showToast('Please login to checkout', 'warning');
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    if (this.cartItems.length === 0) {
+      this.showToast('Your cart is empty', 'warning');
+      return;
+    }
+
+    const orderReq: CreateOrderRequest = {
+      userId: user.id,
+      customerName: user.username,
+      discount: 0,
+      paymentMethod: PaymentMethodEnum.CASH,
+      items: this.cartItems.map(i => ({
+        productId: i.product.id,
+        quantity: i.quantity,
+        price: i.product.price
+      }))
+    };
+
+    this.orderService.create(orderReq).subscribe({
+      next: (res) => {
+        this.cartService.clearCart();
+        this.showToast('Order placed successfully!', 'success');
+        this.router.navigate(['/products']);
+      },
+      error: (err) => {
+        this.showToast('Failed to place order. Please try again.', 'danger');
+        console.error(err);
+      }
+    });
+  }
+
+  private async showToast(message: string, color: string) {
+    const toast = await this.toastCtrl.create({
+      message,
+      duration: 2000,
+      color,
+      position: 'top'
+    });
+    await toast.present();
   }
 }

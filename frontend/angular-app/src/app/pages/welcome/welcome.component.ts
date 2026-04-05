@@ -15,7 +15,6 @@ export class WelcomeComponent implements OnInit {
   constructor(private router: Router) { }
 
   ngOnInit() {
-    // Chuyển hướng sang trang login sau 2.5 giây
     setTimeout(() => {
       this.router.navigate(['/login'], { replaceUrl: true });
     }, 2500);

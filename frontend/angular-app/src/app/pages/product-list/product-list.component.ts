@@ -4,12 +4,15 @@ import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import {
   IonContent, IonHeader, IonTitle, IonToolbar,
-  IonSpinner, IonButtons, IonButton,
-  IonSearchbar, IonChip, IonGrid, IonRow, IonCol,
-  IonCard, IonCardContent, IonIcon, IonBadge, IonLabel, IonText
+  IonSpinner, IonButtons, IonButton, IonBackButton,
+  IonSearchbar, IonRow, IonCol,
+  IonIcon, IonLabel,
+  IonModal, IonItem, IonInput, IonSelect, IonSelectOption,
+  IonFab, IonFabButton,
+  AlertController, ToastController
 } from '@ionic/angular/standalone';
-import { ProductService } from '../../services/product.service';
-import { CategoryService } from '../../services/category.service';
+import { ProductService } from '../../core/services/product.service';
+import { CategoryService } from '../../core/services/category.service';
 import { Product, ProductPage } from '../../models/product.model';
 import { Category } from '../../models/category.model';
 
@@ -21,12 +24,15 @@ import { Category } from '../../models/category.model';
   imports: [
     CommonModule, RouterModule, FormsModule,
     IonContent, IonHeader, IonTitle, IonToolbar,
-    IonSpinner, IonButtons, IonButton,
-    IonSearchbar, IonChip, IonGrid, IonRow, IonCol,
-    IonCard, IonCardContent, IonIcon, IonBadge, IonLabel, IonText
+    IonSpinner, IonButtons, IonButton, IonBackButton,
+    IonSearchbar, IonRow, IonCol,
+    IonIcon, IonLabel,
+    IonModal, IonItem, IonInput, IonSelect, IonSelectOption,
+    IonFab, IonFabButton
   ]
 })
 export class ProductListComponent implements OnInit {
+  // List State
   products: Product[] = [];
   categories: Category[] = [];
   selectedCategoryId: number | null = null;
@@ -39,14 +45,111 @@ export class ProductListComponent implements OnInit {
   totalPages = 0;
   totalElements = 0;
 
+  // Product Form Modal State
+  isModalOpen = false;
+  isEditing = false;
+  productForm: any = {
+    id: null,
+    name: '',
+    sku: '',
+    price: 0,
+    stock: 0,
+    categoryId: null
+  };
+
   constructor(
     private productService: ProductService,
-    private categoryService: CategoryService
+    private categoryService: CategoryService,
+    private alertController: AlertController,
+    private toastController: ToastController
   ) { }
 
   ngOnInit() {
     this.loadCategories();
     this.loadProducts();
+  }
+
+  // --- Modal Actions ---
+  openAddModal() {
+    this.isEditing = false;
+    this.productForm = {
+      id: null,
+      name: '',
+      sku: '',
+      price: 0,
+      stock: 0,
+      categoryId: this.selectedCategoryId || (this.categories.length > 0 ? this.categories[0].id : null)
+    };
+    this.isModalOpen = true;
+  }
+
+  openEditModal(product: Product, event: Event) {
+    event.stopPropagation();
+    this.isEditing = true;
+    this.productForm = { ...product };
+    this.isModalOpen = true;
+  }
+
+  closeModal() {
+    this.isModalOpen = false;
+  }
+
+  // --- CRUD Operations ---
+  async saveProduct() {
+    if (!this.productForm.name || !this.productForm.sku || !this.productForm.categoryId) {
+      this.showToast('Vui lòng điền đủ thông tin bắt buộc', 'warning');
+      return;
+    }
+
+    const action = this.isEditing ?
+      this.productService.update(this.productForm.id, this.productForm) :
+      this.productService.create(this.productForm);
+
+    action.subscribe({
+      next: () => {
+        this.showToast(this.isEditing ? 'Cập nhật thành công' : 'Thêm mới thành công', 'success');
+        this.closeModal();
+        this.loadProducts(this.currentPage);
+      },
+      error: (err) => {
+        this.showToast('Lỗi: ' + (err.error?.message || 'Không thể lưu sản phẩm'), 'danger');
+      }
+    });
+  }
+
+  async deleteProduct(product: Product, event: Event) {
+    event.stopPropagation();
+    const alert = await this.alertController.create({
+      header: 'Cảnh báo',
+      message: `Bạn có chắc chắn muốn xóa sản phẩm "${product.name}"?`,
+      buttons: [
+        { text: 'Hủy', role: 'cancel' },
+        {
+          text: 'Xóa',
+          cssClass: 'alert-button-delete',
+          handler: () => {
+            this.productService.delete(product.id).subscribe({
+              next: () => {
+                this.showToast('Xóa sản phẩm thành công', 'success');
+                this.loadProducts(this.currentPage);
+              },
+              error: () => this.showToast('Lỗi khi xóa sản phẩm', 'danger')
+            });
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  async showToast(message: string, color: string = 'primary') {
+    const toast = await this.toastController.create({
+      message,
+      duration: 2000,
+      color,
+      position: 'top'
+    });
+    await toast.present();
   }
 
   loadCategories() {
@@ -62,19 +165,18 @@ export class ProductListComponent implements OnInit {
   loadProducts(page = 0) {
     this.loading = true;
     this.errorMsg = '';
-    this.productService.getProducts({
-      page,
-      size: 20,
-      keyword: this.keyword || undefined,
-      categoryId: this.selectedCategoryId ?? undefined
-    }).subscribe({
+
+    const kw = this.keyword ? this.keyword : undefined;
+    const catId = this.selectedCategoryId ? this.selectedCategoryId : undefined;
+
+    this.productService.getProducts(page, 20, kw, catId).subscribe({
       next: (res: any) => {
         // Interceptor đã unwrap → res là ProductPage: { totalElements, totalPages, page, size, data }
-        const page: ProductPage = res;
-        this.products = page.data ?? [];
-        this.totalPages = page.totalPages ?? 0;
-        this.totalElements = page.totalElements ?? 0;
-        this.currentPage = page.page ?? 0;
+        const pageResponse: ProductPage = res;
+        this.products = pageResponse.data ?? [];
+        this.totalPages = pageResponse.totalPages ?? 0;
+        this.totalElements = pageResponse.totalElements ?? 0;
+        this.currentPage = pageResponse.page ?? 0;
         this.loading = false;
       },
       error: (err) => {
@@ -92,6 +194,14 @@ export class ProductListComponent implements OnInit {
   onSearch(event: any) {
     this.keyword = event.detail.value ?? '';
     this.loadProducts(0);
+  }
+
+  get totalStock(): number {
+    return this.products.reduce((sum, product) => sum + (product.stock ?? 0), 0);
+  }
+
+  get totalInventoryValue(): number {
+    return this.products.reduce((sum, product) => sum + ((product.price ?? 0) * (product.stock ?? 0)), 0);
   }
 
   prevPage() {

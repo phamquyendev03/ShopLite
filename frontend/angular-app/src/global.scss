@@ -38,20 +38,73 @@
 
 /* ShopLite Custom Global Utility Classes */
 
-.fade-in {
-  animation: fadeIn ease 1.5s;
+:root {
+  /* Vibrant Bright Blue Theme */
+  --sl-primary: #0284c7;        /* Sky Blue 600 */
+  --sl-primary-dark: #0369a1;   /* Sky Blue 700 */
+  --sl-primary-light: #e0f2fe;  /* Sky Blue 100 */
+  
+  --sl-surface: #ffffff;
+  --sl-bg: #f8fafc;
+  --sl-text-main: #0f172a;
+  --sl-text-sec: #475569;
+  --sl-text-muted: #94a3b8;
+  --sl-border: #f1f5f9;         /* Softer border */
+
+  --sl-success: #10B981;
+  --sl-warning: #F59E0B;
+  --sl-danger: #EF4444;
 }
+
+body,
+ion-app {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: var(--sl-bg);
+  color: var(--sl-text-main);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* Animations */
+.fade-in { animation: fadeIn ease 1s forwards; }
+.fade-up { animation: fadeUp ease 0.6s forwards; }
+.scale-in { animation: scaleIn ease 0.4s forwards; }
 
 @keyframes fadeIn {
   0% { opacity: 0; }
   100% { opacity: 1; }
 }
 
+@keyframes fadeUp {
+  0% { opacity: 0; transform: translateY(16px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  0% { opacity: 0; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Premium Soft Shadows & Cards */
 .shadow-card {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
-  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.05), 0 8px 10px -6px rgba(15, 23, 42, 0.01) !important;
+  border-radius: 16px;
   overflow: hidden;
-  background: white;
+  background: var(--sl-surface);
+  border: 1px solid var(--sl-border);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Glassmorphism */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.06);
 }
 
 .sticky-bottom-bar {
@@ -59,8 +112,37 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background-color: white;
   padding: 16px;
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.05);
   z-index: 999;
+}
+
+.page-header-toolbar {
+  --background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  --color: var(--sl-text-main);
+  --min-height: 56px;
+  --padding-start: 12px;
+  --padding-end: 12px;
+  border-bottom: 1px solid var(--sl-border);
+}
+
+.page-header-toolbar ion-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--sl-text-main);
+}
+
+.page-header-toolbar ion-button {
+  --color: var(--sl-text-sec);
+}
+
+.page-search-toolbar {
+  --background: var(--sl-surface);
+  --padding-top: 8px;
+  --padding-bottom: 12px;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  border-bottom: 1px solid var(--sl-border);
+  box-shadow: 0 4px 12px rgba(15,23,42,0.02);
 }
