@@ -1,0 +1,62 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar class="page-header-toolbar">
+    <ion-title>Thống kê Báo cáo</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="reports-content" [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content pullingText="Kéo xuống để cập nhật" refreshingText="Đang tải..."></ion-refresher-content>
+  </ion-refresher>
+  
+  <div class="content-wrapper" *ngIf="!loading">
+    
+    <!-- KPI Summary Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card kpi-revenue">
+        <span class="kpi-label">Tổng doanh thu</span>
+        <span class="kpi-value">{{ totalRevenue | currency:'VND':'symbol':'1.0-0' }}</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Tổng số đơn</span>
+        <span class="kpi-value c-blue">{{ totalOrders }}</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Giá trị ĐB</span>
+        <span class="kpi-value c-green">{{ avgOrderValue | currency:'VND':'symbol':'1.0-0' }}</span>
+      </div>
+    </div>
+
+    <!-- Revenue Line Chart -->
+    <div class="chart-section shadow-card">
+      <h3 class="section-title">Biểu đồ Doanh Thu</h3>
+      <div class="chart-container">
+        <canvas baseChart
+          [data]="lineChartData"
+          [options]="lineChartOptions"
+          [type]="'line'">
+        </canvas>
+      </div>
+    </div>
+
+    <!-- Top Products Doughnut Chart -->
+    <div class="chart-section shadow-card">
+      <h3 class="section-title">Sản phẩm Bán chạy</h3>
+      <div class="chart-container doughnut-container">
+        <canvas baseChart
+          [data]="doughnutChartData"
+          [options]="doughnutChartOptions"
+          [type]="'doughnut'">
+        </canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="loading">
+    <div class="spinner"></div>
+    <p>Đang tải dữ liệu báo cáo...</p>
+  </div>
+  <div style="height: 80px;"></div>
+</ion-content>

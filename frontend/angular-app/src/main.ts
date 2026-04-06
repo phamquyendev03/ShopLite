@@ -7,6 +7,8 @@ import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';
 import { jwtInterceptor, apiResponseInterceptor } from './app/core';
 
+import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
+
 bootstrapApplication(AppComponent, {
   providers: [
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
@@ -14,5 +16,6 @@ bootstrapApplication(AppComponent, {
     provideRouter(routes, withPreloading(PreloadAllModules)),
     // HttpClient + JWT Interceptor tự động gắn Bearer token
     provideHttpClient(withInterceptors([jwtInterceptor, apiResponseInterceptor])),
+    provideCharts(withDefaultRegisterables())
   ],
 });

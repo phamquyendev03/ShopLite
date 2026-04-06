@@ -9,4 +9,5 @@ import java.util.List;
 public interface TransactionRepository extends JpaRepository<Transaction, Integer> {
     List<Transaction> findAllByOrderId(Integer orderId);
     List<Transaction> findAllByType(TypeTransactionEnum type);
+    boolean existsByExternalId(String externalId);
 }

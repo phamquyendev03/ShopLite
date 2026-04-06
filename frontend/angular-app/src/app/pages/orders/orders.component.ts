@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { 
-  IonContent, IonHeader, IonToolbar, IonTitle, IonSpinner 
+  IonContent, IonHeader, IonToolbar, IonTitle, IonSpinner, IonRefresher, IonRefresherContent
 } from '@ionic/angular/standalone';
 import { OrderService } from '../../core/services/order.service';
 import { Order } from '../../models/order.model';
@@ -16,7 +16,8 @@ type OrderTab = 'ALL' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED';
   standalone: true,
   imports: [
     CommonModule, 
-    IonContent, IonHeader, IonToolbar, IonTitle, IonSpinner
+    IonContent, IonHeader, IonToolbar, IonTitle, IonSpinner,
+    IonRefresher, IonRefresherContent
   ]
 })
 export class OrdersComponent implements OnInit {
@@ -30,18 +31,24 @@ export class OrdersComponent implements OnInit {
     this.loadOrders();
   }
 
-  loadOrders() {
+  loadOrders(event?: any) {
     this.loading = true;
     this.orderService.findAll().subscribe({
       next: (res: any) => {
         // Handle if response is wrapped
         this.orders = (res.data ?? res) as Order[];
         this.loading = false;
+        if (event) event.target.complete();
       },
       error: () => {
         this.loading = false;
+        if (event) event.target.complete();
       }
     });
+  }
+
+  handleRefresh(event: any) {
+    this.loadOrders(event);
   }
 
   get filteredOrders(): Order[] {

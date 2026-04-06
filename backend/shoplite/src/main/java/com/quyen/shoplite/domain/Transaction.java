@@ -19,7 +19,7 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "external_id", length = 100)
+    @Column(name = "external_id", length = 100, unique = true)
     private String externalId;
 
     @Column(name = "bank_code", length = 50)

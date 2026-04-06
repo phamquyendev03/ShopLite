@@ -8,7 +8,7 @@ import {
   IonSearchbar, IonRow, IonCol,
   IonIcon, IonLabel,
   IonModal, IonItem, IonInput, IonSelect, IonSelectOption,
-  IonFab, IonFabButton,
+  IonFab, IonFabButton, IonRefresher, IonRefresherContent,
   AlertController, ToastController
 } from '@ionic/angular/standalone';
 import { ProductService } from '../../core/services/product.service';
@@ -28,7 +28,7 @@ import { Category } from '../../models/category.model';
     IonSearchbar, IonRow, IonCol,
     IonIcon, IonLabel,
     IonModal, IonItem, IonInput, IonSelect, IonSelectOption,
-    IonFab, IonFabButton
+    IonFab, IonFabButton, IonRefresher, IonRefresherContent
   ]
 })
 export class ProductListComponent implements OnInit {
@@ -162,7 +162,7 @@ export class ProductListComponent implements OnInit {
     });
   }
 
-  loadProducts(page = 0) {
+  loadProducts(page = 0, event?: any) {
     this.loading = true;
     this.errorMsg = '';
 
@@ -178,12 +178,19 @@ export class ProductListComponent implements OnInit {
         this.totalElements = pageResponse.totalElements ?? 0;
         this.currentPage = pageResponse.page ?? 0;
         this.loading = false;
+        if (event) event.target.complete();
       },
       error: (err) => {
         this.errorMsg = err?.error?.message || 'Không thể tải sản phẩm. Vui lòng thử lại.';
         this.loading = false;
+        if (event) event.target.complete();
       }
     });
+  }
+
+  handleRefresh(event: any) {
+    this.loadCategories();
+    this.loadProducts(0, event);
   }
 
   selectCategory(id: number | null) {

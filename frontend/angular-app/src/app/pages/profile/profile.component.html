@@ -5,6 +5,10 @@
 </ion-header>
 
 <ion-content class="profile-content" [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content pullingText="Kéo xuống để làm mới" refreshingText="Đang tải..."></ion-refresher-content>
+  </ion-refresher>
+  
   <div class="profile-header">
     <ion-avatar>
       <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80"
@@ -52,4 +56,5 @@
       </ion-card-content>
     </ion-card>
   </div>
+  <div style="height: 80px;"></div>
 </ion-content>

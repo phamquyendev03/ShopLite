@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import {
   IonContent, IonList, IonItem, IonLabel, IonIcon, IonAvatar,
-  IonCard, IonCardContent, IonBadge, IonHeader, IonToolbar, IonTitle
+  IonCard, IonCardContent, IonBadge, IonHeader, IonToolbar, IonTitle,
+  IonRefresher, IonRefresherContent
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { personOutline, storefrontOutline, logOutOutline } from 'ionicons/icons';
@@ -20,7 +21,8 @@ import { StatusEnum } from '../../models/enums.model';
   imports: [
     CommonModule, RouterModule,
     IonContent, IonList, IonItem, IonLabel, IonIcon, IonAvatar,
-    IonCard, IonCardContent, IonBadge, IonHeader, IonToolbar, IonTitle
+    IonCard, IonCardContent, IonBadge, IonHeader, IonToolbar, IonTitle,
+    IonRefresher, IonRefresherContent
   ]
 })
 export class ProfileComponent implements OnInit {
@@ -40,17 +42,23 @@ export class ProfileComponent implements OnInit {
     this.loadOrders();
   }
 
-  loadOrders() {
+  loadOrders(event?: any) {
     this.orderService.findAll().subscribe({
       next: (res: any) => {
         // Interceptor đã unwrap → res là Order[] trực tiếp
         this.orders = Array.isArray(res) ? res : [];
+        if (event) event.target.complete();
       },
       error: (err: any) => {
         console.error('Lỗi tải đơn hàng:', err);
         this.orders = [];
+        if (event) event.target.complete();
       }
     });
+  }
+
+  handleRefresh(event: any) {
+    this.loadOrders(event);
   }
 
   getStatusColor(status: StatusEnum): string {

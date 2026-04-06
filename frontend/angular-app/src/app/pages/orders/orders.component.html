@@ -5,7 +5,11 @@
 </ion-header>
 
 <ion-content class="orders-content" [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content pullingText="Kéo xuống để làm mới" refreshingText="Đang tải..."></ion-refresher-content>
+  </ion-refresher>
 
+  <!-- Add spacer at bottom -->
   <!-- Tabs / Filters -->
   <div class="tabs-scroll-container">
     <div class="tabs-bar">
@@ -83,4 +87,5 @@
       </div>
     </ng-container>
   </div>
+  <div style="height: 80px;"></div>
 </ion-content>

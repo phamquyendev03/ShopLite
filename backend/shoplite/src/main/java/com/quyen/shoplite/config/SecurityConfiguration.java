@@ -49,6 +49,9 @@ public class SecurityConfiguration {
             "/swagger-ui.html",
             "/api/v1/products/**",
             "/api/v1/categories/**",
+            "/api/webhook/sepay",
+            "/api/v1/payment/create",
+            "/api/v1/device-tokens/register"
     };
 
     // ─── Security Filter Chain ─────────────────────────────────────────────────

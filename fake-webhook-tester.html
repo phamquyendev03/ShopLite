@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SePay Fake Webhook Tester — ShopLite</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0a0e1a;
+      --surface: #111827;
+      --surface2: #1a2235;
+      --border: #1e2d45;
+      --accent: #6366f1;
+      --accent2: #8b5cf6;
+      --green: #10b981;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --sepay: #0ea5e9;
+      --code-bg: #0d1117;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    /* ── Header ── */
+    .header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    .header .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(99,102,241,0.15);
+      border: 1px solid rgba(99,102,241,0.3);
+      border-radius: 999px;
+      padding: 6px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+    .header h1 {
+      font-size: 32px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6, #0ea5e9);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    .header p {
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    /* ── Flow Diagram ── */
+    .flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      margin-bottom: 36px;
+      flex-wrap: wrap;
+      row-gap: 12px;
+    }
+    .flow-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 14px 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      min-width: 110px;
+      transition: all 0.3s ease;
+    }
+    .flow-node.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 20px rgba(99,102,241,0.3);
+    }
+    .flow-node.done {
+      border-color: var(--green);
+      box-shadow: 0 0 20px rgba(16,185,129,0.25);
+    }
+    .flow-node .icon { font-size: 24px; }
+    .flow-node .label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .flow-arrow {
+      font-size: 20px;
+      color: var(--border);
+      padding: 0 4px;
+      transition: color 0.3s ease;
+    }
+    .flow-arrow.active { color: var(--accent); }
+    .flow-arrow.done   { color: var(--green); }
+
+    /* ── Main Layout ── */
+    .main {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    @media (max-width: 900px) { .main { grid-template-columns: 1fr; } }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ── Form Controls ── */
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    input, select, textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 14px;
+      color: var(--text);
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      margin-bottom: 16px;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+    }
+    textarea { resize: vertical; min-height: 80px; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+    select option { background: var(--surface2); }
+
+    /* ── Row ── */
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    /* ── Preset Chips ── */
+    .presets {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .preset-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--muted);
+      transition: all 0.2s;
+    }
+    .preset-chip:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(99,102,241,0.1);
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      width: 100%;
+      justify-content: center;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(99,102,241,0.4);
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(99,102,241,0.5);
+    }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      border-color: var(--muted);
+      color: var(--text);
+    }
+    .btn-green {
+      background: linear-gradient(135deg, #059669, #10b981);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(16,185,129,0.3);
+    }
+    .btn-green:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(16,185,129,0.4);
+    }
+
+    /* ── Status Badge ── */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .status-badge.idle    { background: rgba(100,116,139,0.15); color: var(--muted); border: 1px solid var(--border); }
+    .status-badge.loading { background: rgba(245,158,11,0.15); color: var(--yellow); border: 1px solid rgba(245,158,11,0.3); }
+    .status-badge.success { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+    .status-badge.error   { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .status-dot.pulse { animation: pulse 1.2s infinite; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* ── Log Panel ── */
+    .log-panel {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      min-height: 300px;
+      max-height: 500px;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      line-height: 1.8;
+    }
+    .log-panel::-webkit-scrollbar { width: 6px; }
+    .log-panel::-webkit-scrollbar-track { background: transparent; }
+    .log-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .log-line {
+      display: flex;
+      gap: 10px;
+      padding: 2px 0;
+      animation: slideIn 0.2s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .log-time { color: var(--muted); flex-shrink: 0; }
+    .log-tag  { font-weight: 700; flex-shrink: 0; min-width: 90px; }
+    .log-tag.sepay    { color: var(--sepay); }
+    .log-tag.backend  { color: var(--accent); }
+    .log-tag.fcm      { color: #a78bfa; }
+    .log-tag.phone    { color: var(--green); }
+    .log-tag.error    { color: var(--red); }
+    .log-tag.info     { color: var(--muted); }
+    .log-msg { color: var(--text); word-break: break-word; }
+    .log-msg.success { color: var(--green); }
+    .log-msg.error   { color: var(--red); }
+
+    /* ── Response Viewer ── */
+    .response-viewer {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text);
+      min-height: 60px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin-top: 12px;
+    }
+
+    /* ── Notification Preview ── */
+    .notif-preview {
+      background: linear-gradient(135deg, #1f2937, #111827);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 16px;
+      display: none;
+      animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.9) translateY(10px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .notif-preview.show { display: block; }
+    .notif-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .notif-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #059669, #10b981);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .notif-app  { font-size: 11px; font-weight: 600; color: var(--muted); }
+    .notif-time { font-size: 11px; color: var(--muted); margin-left: auto; }
+    .notif-title { font-size: 14px; font-weight: 700; color: var(--text); }
+    .notif-body  { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+    /* ── Divider ── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 20px 0;
+    }
+
+    /* ── Tips ── */
+    .tip-box {
+      background: rgba(99,102,241,0.08);
+      border: 1px solid rgba(99,102,241,0.2);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 13px;
+      color: #a5b4fc;
+      margin-top: 16px;
+      line-height: 1.6;
+    }
+    .tip-box strong { color: #c4b5fd; }
+
+    .full-col { grid-column: 1 / -1; }
+
+    /* ── History ── */
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 13px;
+    }
+    .history-item:hover { border-color: var(--accent); }
+    .history-status { font-size: 16px; }
+    .history-meta { flex: 1; }
+    .history-code { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+    .history-time { color: var(--muted); font-size: 11px; }
+    .history-amount { font-weight: 600; color: var(--green); margin-left: auto; }
+
+    #historyEmpty { color: var(--muted); font-size: 13px; padding: 20px; text-align: center; }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div class="header">
+  <div class="badge">⚡ Developer Tool</div>
+  <h1>SePay Fake Webhook Tester</h1>
+  <p>Simulate payment webhooks từ SePay → Backend → FCM → Điện thoại</p>
+</div>
+
+<!-- ── Flow Diagram ── -->
+<div class="flow" id="flow">
+  <div class="flow-node" id="fn-sepay">
+    <span class="icon">💳</span>
+    <span class="label">SePay</span>
+  </div>
+  <div class="flow-arrow" id="fa-1">→</div>
+  <div class="flow-node" id="fn-webhook">
+    <span class="icon">🔗</span>
+    <span class="label">Webhook</span>
+  </div>
+  <div class="flow-arrow" id="fa-2">→</div>
+  <div class="flow-node" id="fn-backend">
+    <span class="icon">⚙️</span>
+    <span class="label">Backend</span>
+  </div>
+  <div class="flow-arrow" id="fa-3">→</div>
+  <div class="flow-node" id="fn-fcm">
+    <span class="icon">🔔</span>
+    <span class="label">FCM</span>
+  </div>
+  <div class="flow-arrow" id="fa-4">→</div>
+  <div class="flow-node" id="fn-phone">
+    <span class="icon">📱</span>
+    <span class="label">Điện thoại</span>
+  </div>
+</div>
+
+<!-- ── Main ── -->
+<div class="main">
+
+  <!-- ── LEFT: Webhook Sender ── -->
+  <div>
+    <div class="card">
+      <div class="card-title">
+        💳 Cấu hình Webhook
+        <span class="status-badge idle" id="statusBadge">
+          <span class="status-dot"></span>
+          <span id="statusText">Chờ gửi</span>
+        </span>
+      </div>
+
+      <!-- Backend URL -->
+      <label>Backend URL</label>
+      <input type="text" id="baseUrl" value="http://localhost:8080" placeholder="http://localhost:8080"/>
+
+      <!-- Presets -->
+      <label>Preset Payloads</label>
+      <div class="presets">
+        <div class="preset-chip" onclick="loadPreset('success')">✅ Thành công</div>
+        <div class="preset-chip" onclick="loadPreset('partial')">⚠️ Thiếu tiền</div>
+        <div class="preset-chip" onclick="loadPreset('invalid')">❌ Sai content</div>
+        <div class="preset-chip" onclick="loadPreset('duplicate')">🔁 Duplicate</div>
+      </div>
+
+      <!-- Fields -->
+      <div class="row">
+        <div>
+          <label>Transaction ID</label>
+          <input type="text" id="txId" placeholder="SEPAY_TX_001"/>
+        </div>
+        <div>
+          <label>Số tiền (VNĐ)</label>
+          <input type="number" id="amount" placeholder="150000"/>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Ngân hàng</label>
+          <select id="bankCode">
+            <option value="VCB">Vietcombank (VCB)</option>
+            <option value="TCB">Techcombank (TCB)</option>
+            <option value="MB">MB Bank</option>
+            <option value="ACB">ACB</option>
+            <option value="BIDV">BIDV</option>
+            <option value="VTB">Vietinbank</option>
+            <option value="TPB">TPBank</option>
+          </select>
+        </div>
+        <div>
+          <label>Loại GD</label>
+          <select id="transferType">
+            <option value="IN">Tiền vào (IN)</option>
+            <option value="OUT">Tiền ra (OUT)</option>
+          </select>
+        </div>
+      </div>
+
+      <label>Nội dung chuyển khoản (phải chứa order code)</label>
+      <input type="text" id="content" placeholder="Thanh toan ORD-ABC12345"/>
+
+      <label>Webhook Payload (JSON)</label>
+      <textarea id="rawPayload" rows="8" placeholder='{"transaction_id": "...", "amount": ...}'></textarea>
+
+      <div style="display:flex; gap:10px; margin-bottom:0;">
+        <button class="btn btn-secondary" onclick="generatePayload()" style="width:auto; padding:10px 16px;">
+          🔄 Tạo JSON
+        </button>
+        <button class="btn btn-primary" id="sendBtn" onclick="sendWebhook()">
+          🚀 Gửi Webhook
+        </button>
+      </div>
+
+      <div class="response-viewer" id="responseViewer">// Phản hồi từ backend sẽ hiển thị ở đây...</div>
+    </div>
+
+    <!-- Test Notification -->
+    <div class="card" style="margin-top:20px;">
+      <div class="card-title">🔔 Test Push Notification trực tiếp</div>
+      <label>FCM Device Token</label>
+      <input type="text" id="fcmToken" placeholder="Dán FCM token của thiết bị Android vào đây..."/>
+      <div class="row">
+        <div>
+          <label>Tiêu đề</label>
+          <input type="text" id="notifTitle" value="✅ Thanh toán thành công!"/>
+        </div>
+        <div>
+          <label>Nội dung</label>
+          <input type="text" id="notifBody" value="Đơn hàng đã được thanh toán!"/>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <button class="btn btn-green" onclick="sendTestNotif()">📲 Gửi Test Notification</button>
+      </div>
+      <div class="response-viewer" id="notifResponse">// Phản hồi FCM test...</div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT: Log & Preview ── -->
+  <div>
+    <div class="card">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+        <div class="card-title" style="margin-bottom:0;">📜 Activity Log</div>
+        <button class="btn btn-secondary" onclick="clearLog()" style="width:auto; padding:6px 14px; font-size:12px;">
+          🗑️ Xóa
+        </button>
+      </div>
+      <div class="log-panel" id="logPanel">
+        <div class="log-line">
+          <span class="log-time">--:--:--</span>
+          <span class="log-tag info">[SYSTEM]</span>
+          <span class="log-msg">Sẵn sàng test webhook. Chọn preset và nhấn "Gửi Webhook".</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Preview -->
+    <div class="card" style="margin-top:20px;">
+      <div class="card-title">📱 Preview Thông báo điện thoại</div>
+      <div id="notifPreview" class="notif-preview">
+        <div class="notif-header">
+          <div class="notif-icon">✅</div>
+          <div>
+            <div class="notif-app">ShopLite · Vừa xong</div>
+            <div class="notif-title" id="previewTitle">Thanh toán thành công!</div>
+          </div>
+          <div class="notif-time" id="previewTime"></div>
+        </div>
+        <div class="notif-body" id="previewBody">Đơn hàng ABC123 đã được thanh toán. Số tiền: 150,000 VNĐ.</div>
+      </div>
+      <div id="notifPlaceholder" style="text-align:center; padding:30px; color:var(--muted); font-size:13px;">
+        🔔 Preview thông báo sẽ xuất hiện sau khi webhook được xử lý thành công
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="card" style="margin-top:20px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+        <div class="card-title" style="margin-bottom:0;">📋 Lịch sử gửi</div>
+        <button class="btn btn-secondary" onclick="clearHistory()" style="width:auto; padding:6px 14px; font-size:12px;">
+          🗑️ Xóa
+        </button>
+      </div>
+      <div id="historyList">
+        <div id="historyEmpty">Chưa có webhook nào được gửi.</div>
+      </div>
+    </div>
+
+    <div class="tip-box">
+      <strong>💡 Luồng hoạt động:</strong><br/>
+      1️⃣ Tool giả lập SePay gửi POST tới <code>/api/webhook/sepay</code><br/>
+      2️⃣ Backend xác thực, lưu Transaction, cập nhật Order → <strong>PAID</strong><br/>
+      3️⃣ Backend gọi FCM gửi push notification<br/>
+      4️⃣ Firebase chuyển tới điện thoại theo FCM token<br/><br/>
+      <strong>⚠️ Lưu ý:</strong> FCM hoạt động khi <code>shoplite.firebase.enabled=true</code> và có <code>firebase-service-account.json</code>.
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────
+  let history_list = [];
+  let animTimeout = null;
+
+  // ── Presets ────────────────────────────────────────────
+  const PRESETS = {
+    success: {
+      txId: 'SEPAY_TX_' + Date.now(),
+      amount: 150000,
+      content: 'Thanh toan don hang ORD-ABC12345',
+      bankCode: 'VCB',
+      type: 'IN'
+    },
+    partial: {
+      txId: 'SEPAY_TX_PARTIAL_' + Date.now(),
+      amount: 50000, // Sai số tiền
+      content: 'Thanh toan ORD-ABC12345',
+      bankCode: 'TCB',
+      type: 'IN'
+    },
+    invalid: {
+      txId: 'SEPAY_TX_INVALID_' + Date.now(),
+      amount: 150000,
+      content: 'Chuyen tien thu cong', // Không có order code
+      bankCode: 'MB',
+      type: 'IN'
+    },
+    duplicate: {
+      txId: 'SEPAY_TX_DUPE_001',
+      amount: 150000,
+      content: 'Thanh toan ORD-ABC12345',
+      bankCode: 'ACB',
+      type: 'IN'
+    }
+  };
+
+  function loadPreset(type) {
+    const p = PRESETS[type];
+    if (!p) return;
+    document.getElementById('txId').value    = p.txId;
+    document.getElementById('amount').value  = p.amount;
+    document.getElementById('content').value = p.content;
+    document.getElementById('bankCode').value = p.bankCode;
+    generatePayload();
+    log('INFO', '[PRESET]', `Loaded preset: ${type}`);
+  }
+
+  // ── Generate JSON Payload ───────────────────────────────
+  function generatePayload() {
+    const txId      = document.getElementById('txId').value || 'SEPAY_TX_' + Date.now();
+    const amount    = parseFloat(document.getElementById('amount').value) || 0;
+    const content   = document.getElementById('content').value || '';
+    const bankCode  = document.getElementById('bankCode').value;
+    const transType = document.getElementById('transferType').value;
+
+    const payload = {
+      transaction_id: txId,
+      amount: amount,
+      content: content,
+      bank_code: bankCode,
+      transfer_type: transType,
+      accumulated_amount: amount,
+      sub_account: null,
+      code: null,
+      description: content,
+      // SePay standard fields
+      id: Math.floor(Math.random() * 1000000),
+      gate: 'sepay',
+      reference_code: 'REF' + Date.now(),
+      timestamp: new Date().toISOString()
+    };
+
+    document.getElementById('rawPayload').value = JSON.stringify(payload, null, 2);
+    return payload;
+  }
+
+  // ── Send Webhook ────────────────────────────────────────
+  async function sendWebhook() {
+    const baseUrl = document.getElementById('baseUrl').value.replace(/\/$/, '');
+    const endpoint = `${baseUrl}/api/webhook/sepay`;
+
+    let payloadStr = document.getElementById('rawPayload').value;
+    if (!payloadStr.trim()) {
+      generatePayload();
+      payloadStr = document.getElementById('rawPayload').value;
+    }
+
+    let payload;
+    try {
+      payload = JSON.parse(payloadStr);
+    } catch (e) {
+      log('ERROR', '[ERROR]', 'JSON payload không hợp lệ: ' + e.message);
+      setStatus('error', 'Lỗi JSON');
+      return;
+    }
+
+    const sendBtn = document.getElementById('sendBtn');
+    sendBtn.disabled = true;
+    sendBtn.textContent = '⏳ Đang gửi...';
+
+    setStatus('loading', 'Đang gửi...');
+
+    // Step 1: SePay
+    animateFlow('sepay');
+    log('SEPAY', '[SePay]', `Gửi webhook đến ${endpoint}`);
+    log('SEPAY', '[SePay]', `transaction_id=${payload.transaction_id}, amount=${payload.amount?.toLocaleString('vi-VN')} VNĐ`);
+
+    await delay(600);
+
+    // Step 2: Webhook hit
+    animateFlow('webhook');
+    log('BACKEND', '[Webhook]', 'POST /api/webhook/sepay nhận được');
+    log('BACKEND', '[Webhook]', `Content: "${payload.content}"`);
+
+    await delay(400);
+
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const responseText = await res.text();
+      document.getElementById('responseViewer').textContent =
+        `HTTP ${res.status} ${res.statusText}\n\n${responseText}`;
+
+      // Step 3: Backend processing
+      animateFlow('backend');
+      log('BACKEND', '[Backend]', `HTTP ${res.status} — ${responseText}`);
+
+      if (res.ok && responseText.includes('success')) {
+        log('BACKEND', '[Backend]', '✅ Order cập nhật → PAID');
+        log('BACKEND', '[Backend]', '✅ Transaction đã được lưu vào DB');
+
+        await delay(500);
+
+        // Step 4: FCM
+        animateFlow('fcm');
+        log('FCM', '[FCM]', '🔔 Gửi push notification qua Firebase...');
+
+        await delay(700);
+
+        // Step 5: Phone
+        animateFlow('phone');
+        log('PHONE', '[Phone]', '📱 Thông báo đã đến điện thoại!');
+
+        // Show notification preview
+        const orderCode = extractOrderCode(payload.content);
+        showNotifPreview(
+          '✅ Thanh toán thành công!',
+          `Đơn hàng ${orderCode} đã được thanh toán. Số tiền: ${payload.amount?.toLocaleString('vi-VN')} VNĐ.`
+        );
+
+        setStatus('success', 'Thành công!');
+        addHistory('✅', payload.transaction_id, payload.amount, 'success');
+      } else {
+        log('ERROR', '[ERROR]', `Backend từ chối: ${responseText}`);
+        setStatus('error', 'Thất bại');
+        addHistory('❌', payload.transaction_id, payload.amount, 'error');
+      }
+    } catch (err) {
+      log('ERROR', '[ERROR]', `Không thể kết nối backend: ${err.message}`);
+      document.getElementById('responseViewer').textContent = `❌ Lỗi kết nối:\n${err.message}\n\nKiểm tra:\n• Backend đang chạy tại ${baseUrl}?\n• CORS đã được cấu hình?`;
+      setStatus('error', 'Lỗi kết nối');
+      addHistory('💥', payload.transaction_id, payload.amount, 'conn_error');
+    }
+
+    sendBtn.disabled = false;
+    sendBtn.innerHTML = '🚀 Gửi Webhook';
+  }
+
+  // ── Test Notification ───────────────────────────────────
+  async function sendTestNotif() {
+    const baseUrl = document.getElementById('baseUrl').value.replace(/\/$/, '');
+    const token   = document.getElementById('fcmToken').value.trim();
+    const title   = document.getElementById('notifTitle').value;
+    const body_   = document.getElementById('notifBody').value;
+
+    if (!token) {
+      document.getElementById('notifResponse').textContent = '⚠️ Vui lòng nhập FCM device token.';
+      return;
+    }
+
+    log('FCM', '[FCM]', `Test notification → token: ${token.substring(0, 20)}...`);
+
+    try {
+      const res = await fetch(`${baseUrl}/api/v1/device-tokens/test-notification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, title, body: body_ })
+      });
+      const data = await res.json();
+      document.getElementById('notifResponse').textContent = JSON.stringify(data, null, 2);
+
+      if (data.success) {
+        log('PHONE', '[Phone]', '📱 Test notification đã gửi thành công!');
+        showNotifPreview(title, body_);
+      } else {
+        log('ERROR', '[ERROR]', data.message);
+      }
+    } catch (err) {
+      document.getElementById('notifResponse').textContent = `❌ Lỗi: ${err.message}`;
+      log('ERROR', '[ERROR]', err.message);
+    }
+  }
+
+  // ── Helpers ─────────────────────────────────────────────
+  function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  function extractOrderCode(content) {
+    const match = content?.match(/([A-Z]{2,}-[A-Z0-9]{4,}|[A-Z0-9]{8,15})/);
+    return match ? match[1] : 'N/A';
+  }
+
+  function now() {
+    return new Date().toLocaleTimeString('vi-VN', { hour12: false });
+  }
+
+  function log(type, tag, msg) {
+    const panel = document.getElementById('logPanel');
+    const div = document.createElement('div');
+    div.className = 'log-line';
+
+    const tagClass = {
+      SEPAY: 'sepay', BACKEND: 'backend', FCM: 'fcm',
+      PHONE: 'phone', ERROR: 'error', INFO: 'info'
+    }[type] || 'info';
+
+    const isSuccess = msg.includes('✅') || msg.includes('📱');
+    const isError   = msg.includes('❌') || type === 'ERROR';
+
+    div.innerHTML = `
+      <span class="log-time">${now()}</span>
+      <span class="log-tag ${tagClass}">${tag}</span>
+      <span class="log-msg ${isSuccess ? 'success' : isError ? 'error' : ''}">${msg}</span>
+    `;
+    panel.appendChild(div);
+    panel.scrollTop = panel.scrollHeight;
+  }
+
+  function clearLog() {
+    const p = document.getElementById('logPanel');
+    p.innerHTML = '';
+    log('INFO', '[SYSTEM]', 'Log đã được xóa.');
+  }
+
+  function setStatus(type, text) {
+    const badge = document.getElementById('statusBadge');
+    const dot   = badge.querySelector('.status-dot');
+    const span  = document.getElementById('statusText');
+    badge.className = `status-badge ${type}`;
+    dot.className   = `status-dot ${type === 'loading' ? 'pulse' : ''}`;
+    span.textContent = text;
+  }
+
+  function animateFlow(step) {
+    const map = {
+      sepay:   { node: 'fn-sepay',   arrows: [] },
+      webhook: { node: 'fn-webhook', arrows: ['fa-1'] },
+      backend: { node: 'fn-backend', arrows: ['fa-2'] },
+      fcm:     { node: 'fn-fcm',     arrows: ['fa-3'] },
+      phone:   { node: 'fn-phone',   arrows: ['fa-4'] }
+    };
+
+    const steps = ['sepay', 'webhook', 'backend', 'fcm', 'phone'];
+    const idx = steps.indexOf(step);
+
+    // Mark previous as done
+    steps.slice(0, idx).forEach(s => {
+      document.getElementById(map[s].node)?.classList.add('done');
+      map[s].arrows.forEach(a => {
+        document.getElementById(a)?.classList.remove('active');
+        document.getElementById(a)?.classList.add('done');
+      });
+    });
+
+    // Mark current as active
+    const current = map[step];
+    const node = document.getElementById(current.node);
+    if (node) { node.classList.remove('done'); node.classList.add('active'); }
+    current.arrows.forEach(a => {
+      const el = document.getElementById(a);
+      if (el) { el.classList.remove('done'); el.classList.add('active'); }
+    });
+  }
+
+  function resetFlow() {
+    ['fn-sepay','fn-webhook','fn-backend','fn-fcm','fn-phone'].forEach(id => {
+      document.getElementById(id)?.classList.remove('active','done');
+    });
+    ['fa-1','fa-2','fa-3','fa-4'].forEach(id => {
+      document.getElementById(id)?.classList.remove('active','done');
+    });
+  }
+
+  function showNotifPreview(title, body) {
+    document.getElementById('previewTitle').textContent = title;
+    document.getElementById('previewBody').textContent  = body;
+    document.getElementById('previewTime').textContent  = now();
+    document.getElementById('notifPreview').classList.add('show');
+    document.getElementById('notifPlaceholder').style.display = 'none';
+  }
+
+  function addHistory(icon, txId, amount, status) {
+    document.getElementById('historyEmpty')?.remove();
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    item.onclick = () => {
+      document.getElementById('txId').value = txId;
+      generatePayload();
+    };
+    item.innerHTML = `
+      <span class="history-status">${icon}</span>
+      <div class="history-meta">
+        <div class="history-code">${txId}</div>
+        <div class="history-time">${new Date().toLocaleString('vi-VN')}</div>
+      </div>
+      <div class="history-amount">${amount?.toLocaleString('vi-VN')} VNĐ</div>
+    `;
+    document.getElementById('historyList').prepend(item);
+  }
+
+  function clearHistory() {
+    document.getElementById('historyList').innerHTML = '<div id="historyEmpty">Chưa có webhook nào được gửi.</div>';
+  }
+
+  // Sync individual fields → raw payload textarea
+  ['txId','amount','content'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', () => {
+      if (document.getElementById('rawPayload').value.trim()) generatePayload();
+    });
+  });
+
+  // Auto-generate on load
+  window.addEventListener('DOMContentLoaded', () => {
+    loadPreset('success');
+    document.getElementById('txId').value = 'SEPAY_TX_' + Date.now();
+    generatePayload();
+  });
+</script>
+</body>
+</html>

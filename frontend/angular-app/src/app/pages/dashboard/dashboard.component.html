@@ -3,14 +3,8 @@
     <div style="display: flex; justify-content: space-between; align-items: center; padding-right: 8px;">
       <div class="greeting-box" style="padding-left: 8px;">
         <p style="margin: 0; color: var(--sl-text-sec); font-size: 14px; font-weight: 500;">Xin chào,</p>
-        <h2 style="margin: 4px 0 0; color: var(--sl-text-main); font-size: 20px; font-weight: 700;">Tạp hóa Minh Phát 👋</h2>
+        <h2 style="margin: 4px 0 0; color: var(--sl-text-main); font-size: 20px; font-weight: 700;">{{ userName }}</h2>
       </div>
-      <ion-buttons slot="end">
-        <ion-button style="--color: var(--sl-text-main); position: relative;">
-          <ion-icon slot="icon-only" name="notifications-outline"></ion-icon>
-          <span style="position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; background: var(--ion-color-danger, #ef4444); border-radius: 50%;"></span>
-        </ion-button>
-      </ion-buttons>
     </div>
   </ion-toolbar>
 
@@ -21,12 +15,17 @@
 </ion-header>
 
 <ion-content [fullscreen]="true" class="dashboard-content">
+  <!-- Pull to refresh -->
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content pullingText="Kéo xuống để làm mới" refreshingText="Đang tải..."></ion-refresher-content>
+  </ion-refresher>
+
   <!-- Content -->
   <div class="content">
     <!-- Summary Card -->
     <div class="summary-card">
       <div class="summary-header">
-        <span class="summary-title">Doanh thu hôm nay</span>
+        <span class="summary-title">Tổng doanh thu</span>
         <a class="summary-action" routerLink="/tabs/reports">
           Xem lãi lỗ
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="14" height="14">
@@ -35,17 +34,26 @@
         </a>
       </div>
 
-      <div class="main-amount">4,250,000 đ</div>
+      <div class="main-amount">
+        <ion-spinner *ngIf="loading" name="crescent" color="primary"></ion-spinner>
+        <ng-container *ngIf="!loading">{{ totalRevenue | number:'1.0-0' }} đ</ng-container>
+      </div>
 
       <div class="summary-stats">
         <div class="stat-item">
           <div class="stat-label">Số đơn</div>
-          <div class="stat-value">28</div>
+          <div class="stat-value">
+            <ion-spinner *ngIf="loading" name="dots"></ion-spinner>
+            <ng-container *ngIf="!loading">{{ totalOrders }}</ng-container>
+          </div>
         </div>
         <div class="stat-divider"></div>
         <div class="stat-item">
           <div class="stat-label">Lợi nhuận</div>
-          <div class="stat-value success">850,000 đ</div>
+          <div class="stat-value success">
+            <ion-spinner *ngIf="loading" name="dots"></ion-spinner>
+            <ng-container *ngIf="!loading">{{ totalProfit | number:'1.0-0' }} đ</ng-container>
+          </div>
         </div>
       </div>
     </div>
@@ -86,7 +94,7 @@
         <span class="feature-label">Nhân viên</span>
       </div>
 
-      <div class="feature-item" routerLink="/tabs/more">
+      <div class="feature-item">
         <div class="feature-icon-wrapper c-gray">
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

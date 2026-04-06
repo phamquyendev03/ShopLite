@@ -1,20 +1,9 @@
 <ion-header class="ion-no-border">
   <ion-toolbar class="page-header-toolbar">
-    <ion-buttons slot="start">
+    <ion-buttons slot="end">
       <ion-back-button defaultHref="/tabs/dashboard" icon="arrow-back-outline" text=""></ion-back-button>
     </ion-buttons>
     <ion-title>Kho hàng</ion-title>
-    <ion-buttons slot="end">
-      <ion-button>
-        <ion-icon slot="icon-only" name="filter-outline"></ion-icon>
-      </ion-button>
-      <ion-button>
-        <ion-icon slot="icon-only" name="barcode-outline"></ion-icon>
-      </ion-button>
-      <ion-button routerLink="/tabs/dashboard">
-        <ion-icon slot="icon-only" name="home-outline"></ion-icon>
-      </ion-button>
-    </ion-buttons>
   </ion-toolbar>
 
   <ion-toolbar class="page-search-toolbar">
@@ -25,7 +14,12 @@
 </ion-header>
 
 <ion-content class="inventory-content" [fullscreen]="true">
-  <div class="tabs-scroll-container">
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content pullingText="Kéo xuống để làm mới" refreshingText="Đang tải..."></ion-refresher-content>
+  </ion-refresher>
+  
+  <!-- Add spacer at bottom if needed, but not wrapping -->
+    <div class="tabs-scroll-container">
     <div class="tabs-bar">
       <button class="tab-item" [class.active]="selectedCategoryId === null" (click)="selectCategory(null)">
         Tất cả
@@ -81,7 +75,6 @@
       </div>
 
       <div class="inventory-side">
-        <span class="tap-hint">Nhấn để sửa</span>
         <span class="product-qty">SL: {{ product.stock }}</span>
         <span class="product-total">{{ (product.price * product.stock) | number:'1.0-0' }} đ</span>
       </div>
@@ -162,4 +155,5 @@
     </ng-template>
   </ion-modal>
 
+  <div style="height: 80px;"></div>
 </ion-content>
