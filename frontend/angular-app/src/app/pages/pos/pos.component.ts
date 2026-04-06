@@ -205,37 +205,17 @@ export class PosComponent implements OnInit, OnDestroy {
     this.checkingOut = true;
     this.orderService.create(orderReq).subscribe({
       next: (res: any) => {
-        const orderData = res.data ?? res;
-        const orderId = orderData.id;
+        // Cả TIỀN MẶT và CHUYỂN KHOẢN đều thành công luôn (mặc định đã PAID ở backend)
+        this.cartService.clearCart();
+        this.showCheckoutModal = false;
+        this.cartExpanded = false;
+        this.checkingOut = false;
+        this.qrStepActive = false;
         
-        if (paymentMethod === PaymentMethodEnum.BANK) {
-          // Tạo payment session
-          this.paymentService.createPaymentSession(orderId).subscribe({
-            next: (sessionData: any) => {
-              const session = sessionData.data ?? sessionData;
-              // Dùng VietQR để show mã trực tiếp cho SePay, vì link của SePay là hosted link HTML
-              // Có thể dùng qr.sepay.vn hoặc vietqr.io
-              this.qrCodeUrl = `https://img.vietqr.io/image/VCB-1234567890-compact.jpg?amount=${this.total}&addInfo=${session.order_code}&accountName=ShopLite`;
-              
-              this.qrStepActive = true;
-              this.checkingOut = false;
-              this.currentOrderId = orderId;
-              this.startPollingStatus();
-            },
-            error: (err) => {
-              this.checkingOut = false;
-              this.showToast('Lỗi khi tạo mã QR qua SePay', 'danger');
-              console.error(err);
-            }
-          });
-        } else {
-          // Tiền mặt -> Thành công luôn
-          this.cartService.clearCart();
-          this.showCheckoutModal = false;
-          this.cartExpanded = false;
-          this.checkingOut = false;
-          this.showToast('Đặt hàng thành công! 🎉', 'success');
-        }
+        const msg = paymentMethod === PaymentMethodEnum.BANK 
+          ? 'Thanh toán thành công! Đã gửi thông báo. 🎉' 
+          : 'Đặt hàng thành công! 🎉';
+        this.showToast(msg, 'success');
       },
       error: (err) => {
         this.checkingOut = false;

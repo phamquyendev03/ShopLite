@@ -17,6 +17,9 @@ import java.util.List;
 public class FcmService {
 
     private final DeviceTokenRepository deviceTokenRepository;
+    
+    @org.springframework.beans.factory.annotation.Value("${shoplite.firebase.enabled:true}")
+    private boolean firebaseEnabled;
 
     /**
      * Gửi push notification "Thanh toán thành công" tới tất cả device của user sở hữu order.
@@ -43,6 +46,12 @@ public class FcmService {
      * Gửi notification tới một device token cụ thể.
      */
     public void sendToToken(String token, String title, String body, Order order) {
+        if (!firebaseEnabled) {
+            log.info("[MOCK FCM] Notification would have been sent to token {}... Title: '{}', Body: '{}'", 
+                safeSubstring(token), title, body);
+            return;
+        }
+
         try {
             Message message = Message.builder()
                     .setToken(token)
@@ -90,6 +99,12 @@ public class FcmService {
      * Gửi notification thử nghiệm (không cần order).
      */
     public void sendTestNotification(String token, String title, String body) {
+        if (!firebaseEnabled) {
+            log.info("[MOCK FCM] Test notification would have been sent to token {}... Title: '{}', Body: '{}'", 
+                safeSubstring(token), title, body);
+            return;
+        }
+
         try {
             Message message = Message.builder()
                     .setToken(token)

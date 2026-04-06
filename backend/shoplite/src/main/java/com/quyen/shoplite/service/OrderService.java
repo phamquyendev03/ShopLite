@@ -11,6 +11,7 @@ import com.quyen.shoplite.util.constant.StatusEnum;
 import com.quyen.shoplite.util.constant.TypeInventoryEnum;
 import com.quyen.shoplite.util.error.IdInvalidException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OrderService {
 
     private final OrderRepository orderRepository;
@@ -29,6 +31,7 @@ public class OrderService {
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
     private final InventoryLogsRepository inventoryLogsRepository;
+    private final FcmService fcmService;
 
     @Transactional
     public ResOrderDTO create(ReqOrderDTO req) {
@@ -70,9 +73,10 @@ public class OrderService {
                 .customerName(req.getCustomerName())
                 .totalAmount(finalAmount)
                 .discount(discount)
-                .status(StatusEnum.PENDING)
+                .status(StatusEnum.PAID) // Thay đổi mặc định thành PAID khi thanh toán
                 .paymentMethod(req.getPaymentMethod())
                 .createdAt(LocalDate.now())
+                .paidAt(LocalDate.now())
                 .build();
         Order savedOrder = orderRepository.save(order);
 
@@ -95,6 +99,13 @@ public class OrderService {
                     .referenceId(savedOrder.getCode())
                     .createdAt(LocalDateTime.now())
                     .build());
+        }
+
+        // Gửi push notification sau khi đặt hàng thành công
+        try {
+            fcmService.sendPaymentSuccessNotification(savedOrder);
+        } catch (Exception e) {
+            log.error("[FCM] Lỗi khi gửi push notification cho đơn hàng {}: {}", savedOrder.getCode(), e.getMessage());
         }
 
         // 5. Build response

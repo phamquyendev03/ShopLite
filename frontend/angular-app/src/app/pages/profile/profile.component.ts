@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import {
-  IonContent, IonList, IonItem, IonLabel, IonIcon, IonAvatar,
+  IonContent, IonList, IonItem, IonLabel, IonIcon,
   IonCard, IonCardContent, IonBadge, IonHeader, IonToolbar, IonTitle,
   IonRefresher, IonRefresherContent
 } from '@ionic/angular/standalone';
@@ -20,7 +20,7 @@ import { StatusEnum } from '../../models/enums.model';
   standalone: true,
   imports: [
     CommonModule, RouterModule,
-    IonContent, IonList, IonItem, IonLabel, IonIcon, IonAvatar,
+    IonContent, IonList, IonItem, IonLabel, IonIcon,
     IonCard, IonCardContent, IonBadge, IonHeader, IonToolbar, IonTitle,
     IonRefresher, IonRefresherContent
   ]

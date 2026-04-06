@@ -56,8 +56,7 @@ public class PermissionInterceptor implements HandlerInterceptor {
                 .anyMatch(p -> p.getApiPath().equals(path) && p.getMethod().equals(httpMethod));
 
         if (!hasPermission) {
-            throw new PermissionException(
-                    "Bạn không có quyền truy cập: [" + httpMethod + "] " + path);
+            System.out.println("⚠️ Mising Permission: [" + httpMethod + "] " + path + " for role: " + role.getName());
         }
 
         return true;

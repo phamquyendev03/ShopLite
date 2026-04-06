@@ -4,6 +4,7 @@ import { Observable, tap } from 'rxjs';
 import { StorageService } from './storage.service';
 import { environment } from '../../../environments/environment';
 import { LoginResponse, UserInfo } from '../../models/auth.model';
+import { PushNotificationService } from './push-notification.service';
 
 /** Keys lưu trong storage */
 const ACCESS_TOKEN_KEY = 'access_token';
@@ -25,7 +26,8 @@ export class AuthService {
 
   constructor(
     private http: HttpClient,
-    private storage: StorageService
+    private storage: StorageService,
+    private pushService: PushNotificationService
   ) { }
 
   /**
@@ -41,6 +43,15 @@ export class AuthService {
           this.saveToken(res.accessToken, res.refreshToken);
           if (res.user) {
             this.storage.setItem(USER_INFO_KEY, JSON.stringify(res.user));
+            // Đăng ký Push Notification — bọc try/catch để tránh crash Observable chain
+            // nếu Capacitor chưa sẵn sàng hoặc platform không hỗ trợ
+            try {
+              this.pushService.register(res.user.id).catch((e: any) =>
+                console.warn('[Auth] Push register error (ignored):', e)
+              );
+            } catch (e) {
+              console.warn('[Auth] Push register sync error (ignored):', e);
+            }
           }
         })
       );
@@ -59,6 +70,14 @@ export class AuthService {
           this.saveToken(res.accessToken, res.refreshToken);
           if (res.user) {
             this.storage.setItem(USER_INFO_KEY, JSON.stringify(res.user));
+            // Đăng ký Push Notification — bọc try/catch để tránh crash Observable chain
+            try {
+              this.pushService.register(res.user.id).catch((e: any) =>
+                console.warn('[Auth] Push register error (ignored):', e)
+              );
+            } catch (e) {
+              console.warn('[Auth] Push register sync error (ignored):', e);
+            }
           }
         })
       );
