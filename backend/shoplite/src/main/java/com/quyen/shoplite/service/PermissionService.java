@@ -4,7 +4,9 @@ import com.quyen.shoplite.domain.Permission;
 import com.quyen.shoplite.domain.request.ReqPermissionDTO;
 import com.quyen.shoplite.domain.response.ResPermissionDTO;
 import com.quyen.shoplite.repository.PermissionRepository;
+import com.quyen.shoplite.util.error.BadRequestException;
 import com.quyen.shoplite.util.error.IdInvalidException;
+import com.quyen.shoplite.util.error.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,7 +27,7 @@ public class PermissionService {
     public ResPermissionDTO create(ReqPermissionDTO req) {
         if (permissionRepository.existsByModuleAndApiPathAndMethod(
                 req.getModule(), req.getApiPath(), req.getMethod())) {
-            throw new IdInvalidException(
+            throw new BadRequestException(
                     "Permission [" + req.getMethod() + " " + req.getApiPath() + "] đã tồn tại trong module " + req.getModule());
         }
         Permission p = Permission.builder()
@@ -41,14 +43,14 @@ public class PermissionService {
     // ─── Get by ID ─────────────────────────────────────────────────────────────
     public ResPermissionDTO findById(Long id) {
         Permission p = permissionRepository.findById(id)
-                .orElseThrow(() -> new IdInvalidException("Không tìm thấy Permission id=" + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Permission id=" + id));
         return toDTO(p);
     }
 
     // ─── Update ────────────────────────────────────────────────────────────────
     public ResPermissionDTO update(Long id, ReqPermissionDTO req) {
         Permission p = permissionRepository.findById(id)
-                .orElseThrow(() -> new IdInvalidException("Không tìm thấy Permission id=" + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Permission id=" + id));
         p.setName(req.getName());
         p.setApiPath(req.getApiPath());
         p.setMethod(req.getMethod().toUpperCase());
@@ -60,7 +62,7 @@ public class PermissionService {
     // ─── Delete ────────────────────────────────────────────────────────────────
     public void delete(Long id) {
         Permission p = permissionRepository.findById(id)
-                .orElseThrow(() -> new IdInvalidException("Không tìm thấy Permission id=" + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Permission id=" + id));
         // Xóa relationship với roles trước
         p.getRoles().forEach(role -> role.getPermissions().remove(p));
         permissionRepository.delete(p);

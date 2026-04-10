@@ -28,6 +28,10 @@ public class SecurityUtil {
     @Value("${shoplite.jwt.refresh-token-expiration}")
     private long refreshTokenExpiration;    // giây
 
+    public long getRefreshTokenExpiration() {
+        return refreshTokenExpiration;
+    }
+
     private final JwtEncoder jwtEncoder;
 
     public SecurityUtil(JwtEncoder jwtEncoder) {

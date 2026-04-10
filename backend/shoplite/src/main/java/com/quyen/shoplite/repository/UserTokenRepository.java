@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface UserTokenRepository extends JpaRepository<UserToken, Integer> {
     Optional<UserToken> findByRefreshTokenAndRevokedFalse(String refreshToken);
     List<UserToken> findByUser_IdAndRevokedFalse(Integer userId);
+    List<UserToken> findByUser_Id(Integer userId);
 }

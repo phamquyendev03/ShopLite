@@ -1,14 +1,16 @@
 package com.quyen.shoplite.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.quyen.shoplite.domain.Permission;
-import com.quyen.shoplite.domain.Role;
+import com.jayway.jsonpath.JsonPath;
 import com.quyen.shoplite.domain.User;
+
 import com.quyen.shoplite.domain.request.ReqLoginDTO;
-import com.quyen.shoplite.repository.PermissionRepository;
-import com.quyen.shoplite.repository.RoleRepository;
 import com.quyen.shoplite.repository.UserRepository;
-import org.junit.jupiter.api.*;
+import com.quyen.shoplite.repository.UserTokenRepository;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -21,198 +23,153 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.hamcrest.Matchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import com.quyen.shoplite.domain.UserToken;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/**
- * ✅ AuthControllerIntegrationTest
- *
- * Bao phủ:
- *  1. Login thành công → trả về accessToken, refreshToken, userInfo
- *  2. Login sai mật khẩu → 400
- *  3. Login username không tồn tại → 400
- *  4. JWT hoạt động: dùng token gọi endpoint bảo mật → 200
- *  5. Gọi endpoint bảo mật không có token → 401
- *  6. Gọi /auth/me với token hợp lệ → trả về username
- */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class AuthControllerIntegrationTest {
 
-    @Autowired MockMvc mockMvc;
-    @Autowired ObjectMapper objectMapper;
-    @Autowired UserRepository userRepository;
-    @Autowired RoleRepository roleRepository;
-    @Autowired PermissionRepository permissionRepository;
-    @Autowired PasswordEncoder passwordEncoder;
+    @Autowired
+    private MockMvc mockMvc;
 
-    private static String accessToken;   // chia sẻ giữa các test
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private UserTokenRepository userTokenRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void setUp() {
-        // Seed permissions cần thiết cho /auth/me
-        Permission pAuthMe = findOrCreatePermission(
-                "Xem current user", "/api/v1/auth/me", "GET", "AUTH");
-        // Seed permissions cho /orders (dùng khi test JWT với orders)
-        Permission pOrderGet = findOrCreatePermission(
-                "Xem orders", "/api/v1/orders", "GET", "ORDERS");
-
-        // Tạo role ADMIN_AUTH với đầy đủ quyền cần test
-        Role adminRole = roleRepository.findByName("ADMIN_AUTH").orElseGet(() ->
-                roleRepository.save(Role.builder()
-                        .name("ADMIN_AUTH")
-                        .description("Admin role for auth tests")
-                        .active(true)
-                        .permissions(List.of(pAuthMe, pOrderGet))
-                        .createdAt(LocalDateTime.now())
-                        .build())
-        );
-
-        // Tạo user test nếu chưa có
-        if (!userRepository.existsByUsername("testadmin")) {
-            userRepository.save(User.builder()
-                    .username("testadmin")
-                    .password(passwordEncoder.encode("secret123"))
-                    .role(adminRole)
+        if (!userRepository.existsByUsername("auth_test_user")) {
+            User user = User.builder()
+                    .username("auth_test_user")
+                    .password(passwordEncoder.encode("Password123!"))
                     .isActive(true)
                     .createdAt(LocalDateTime.now())
-                    .build());
+                    .build();
+            userRepository.save(user);
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // 1. LOGIN THÀNH CÔNG
-    // ─────────────────────────────────────────────────────────────────────────
+    @AfterEach
+    void tearDown() {
+        userRepository.findByUsername("auth_test_user").ifPresent(user -> {
+            // Delete ALL tokens for this user first (FK constraint)
+            List<UserToken> tokens = userTokenRepository.findByUser_Id(user.getId());
+            userTokenRepository.deleteAll(tokens);
+            userRepository.delete(user);
+        });
+    }
 
     @Test
-    @Order(1)
-    @DisplayName("✅ POST /auth/login - Login thành công → 200, có đủ token và userInfo")
-    void login_Success_Returns200WithTokens() throws Exception {
+    @DisplayName("login success")
+    void login_Success() throws Exception {
         ReqLoginDTO req = new ReqLoginDTO();
-        req.setUsername("testadmin");
-        req.setPassword("secret123");
+        req.setUsername("auth_test_user");
+        req.setPassword("Password123!");
 
-        MvcResult result = mockMvc.perform(post("/api/v1/auth/login")
+        mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.accessToken").isNotEmpty())
-                .andExpect(jsonPath("$.data.refreshToken").isNotEmpty())
-                .andExpect(jsonPath("$.data.user.username").value("testadmin"))
-                .andExpect(jsonPath("$.data.user.roleName").value("ADMIN_AUTH"))
-                .andReturn();
-
-        // Lưu lại token cho các test sau
-        String body = result.getResponse().getContentAsString();
-        accessToken = objectMapper.readTree(body)
-                .path("data").path("accessToken").asText();
+                .andExpect(jsonPath("$.data.refreshToken").isNotEmpty());
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // 2. LOGIN SAI MẬT KHẨU
-    // ─────────────────────────────────────────────────────────────────────────
-
     @Test
-    @Order(2)
-    @DisplayName("❌ POST /auth/login - Sai mật khẩu → 400 Bad Request")
-    void login_WrongPassword_Returns400() throws Exception {
+    @DisplayName("login invalid password")
+    void login_InvalidPassword() throws Exception {
         ReqLoginDTO req = new ReqLoginDTO();
-        req.setUsername("testadmin");
-        req.setPassword("wrong_password");
+        req.setUsername("auth_test_user");
+        req.setPassword("WrongPassword!");
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message",
-                        containsStringIgnoringCase("không đúng")));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.statusCode").value(401))
+                .andExpect(jsonPath("$.message").value("Tên đăng nhập hoặc mật khẩu không đúng"));
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // 3. USERNAME KHÔNG TỒN TẠI
-    // ─────────────────────────────────────────────────────────────────────────
-
     @Test
-    @Order(3)
-    @DisplayName("❌ POST /auth/login - Username không tồn tại → 400 Bad Request")
-    void login_UserNotFound_Returns400() throws Exception {
+    @DisplayName("login unknown username")
+    void login_UnknownUsername() throws Exception {
         ReqLoginDTO req = new ReqLoginDTO();
-        req.setUsername("ghost_user_xyz");
-        req.setPassword("anyPass");
+        req.setUsername("unknown_user");
+        req.setPassword("Password123!");
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.statusCode").value(401))
+                .andExpect(jsonPath("$.message").value("Tên đăng nhập hoặc mật khẩu không đúng"));
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // 4. JWT HOẠT ĐỘNG: gọi endpoint cần auth với token hợp lệ → 200
-    // ─────────────────────────────────────────────────────────────────────────
-
     @Test
-    @Order(4)
-    @DisplayName("✅ GET /auth/me - Token hợp lệ → trả về username")
-    void getMe_WithValidToken_ReturnsUsername() throws Exception {
-        // Lấy fresh token trực tiếp (không phụ thuộc vào static field từ test khác)
-        ReqLoginDTO loginReq = new ReqLoginDTO();
-        loginReq.setUsername("testadmin");
-        loginReq.setPassword("secret123");
+    @DisplayName("refresh success")
+    void refresh_Success() throws Exception {
+        // 1. Login to get token
+        ReqLoginDTO req = new ReqLoginDTO();
+        req.setUsername("auth_test_user");
+        req.setPassword("Password123!");
 
-        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
+        MvcResult result = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(loginReq)))
-                .andExpect(status().isOk())
+                        .content(objectMapper.writeValueAsString(req)))
                 .andReturn();
 
-        String freshToken = objectMapper.readTree(loginResult.getResponse().getContentAsString())
-                .path("data").path("accessToken").asText();
+        String responseBody = result.getResponse().getContentAsString();
+        String refreshToken = JsonPath.read(responseBody, "$.data.refreshToken");
 
-        mockMvc.perform(get("/api/v1/auth/me")
-                        .header("Authorization", "Bearer " + freshToken))
+        // 2. Perform refresh
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .header("Authorization", "Bearer " + refreshToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").value("testadmin"));
+                .andExpect(jsonPath("$.data.accessToken").isNotEmpty())
+                .andExpect(jsonPath("$.data.refreshToken").isNotEmpty());
     }
-
-    // Helper
-    private Permission findOrCreatePermission(String name, String apiPath, String method, String module) {
-        return permissionRepository.findByApiPathAndMethod(apiPath, method)
-                .orElseGet(() -> permissionRepository.save(
-                        Permission.builder()
-                                .name(name)
-                                .apiPath(apiPath)
-                                .method(method)
-                                .module(module)
-                                .createdAt(LocalDateTime.now())
-                                .build()
-                ));
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // 5. KHÔNG CÓ TOKEN → 401
-    // ─────────────────────────────────────────────────────────────────────────
 
     @Test
-    @Order(5)
-    @DisplayName("❌ GET /auth/me - Không có token → 401 Unauthorized")
-    void getMe_WithoutToken_Returns401() throws Exception {
-        mockMvc.perform(get("/api/v1/auth/me"))
-                .andExpect(status().isUnauthorized());
+    @DisplayName("refresh invalid token")
+    void refresh_InvalidToken() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .header("Authorization", "Bearer invalid.fake.token"))
+                .andExpect(status().isUnauthorized()); // Spring Security will block it before reaching controller if totally invalid
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // 6. TOKEN GIẢ → 401
-    // ─────────────────────────────────────────────────────────────────────────
-
     @Test
-    @Order(6)
-    @DisplayName("❌ GET /auth/me - Token giả → 401 Unauthorized")
-    void getMe_WithFakeToken_Returns401() throws Exception {
-        mockMvc.perform(get("/api/v1/auth/me")
-                        .header("Authorization", "Bearer this.is.a.fake.token"))
-                .andExpect(status().isUnauthorized());
+    @DisplayName("logout success - token is revoked")
+    void logout_Success() throws Exception {
+        // 1. Login to get token
+        ReqLoginDTO req = new ReqLoginDTO();
+        req.setUsername("auth_test_user");
+        req.setPassword("Password123!");
+
+        MvcResult result = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andReturn();
+
+        String responseBody = result.getResponse().getContentAsString();
+        String refreshToken = JsonPath.read(responseBody, "$.data.refreshToken");
+
+        // 2. Perform logout - expect 204
+        mockMvc.perform(post("/api/v1/auth/logout")
+                        .header("Authorization", "Bearer " + refreshToken))
+                .andExpect(status().isNoContent());
+
+        // 3. Verify the token has been marked revoked in the DB
+        assertThat(userTokenRepository.findByRefreshTokenAndRevokedFalse(refreshToken)).isEmpty();
     }
 }

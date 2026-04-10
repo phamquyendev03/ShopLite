@@ -2,6 +2,7 @@ package com.quyen.shoplite.util.error;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -41,6 +42,12 @@ public class GlobalException {
                 .body(buildError(404, e.getMessage()));
     }
 
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<Map<String, Object>> handleUnauthorizedException(UnauthorizedException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(buildError(401, e.getMessage()));
+    }
+
     @ExceptionHandler(PermissionException.class)
     public ResponseEntity<Map<String, Object>> handlePermissionException(PermissionException e) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -74,6 +81,18 @@ public class GlobalException {
         body.put("errors", errors);
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
+        String message = "Dữ liệu đầu vào không hợp lệ hoặc sai định dạng. Vui lòng kiểm tra lại.";
+        if (e.getMessage() != null && e.getMessage().contains("PaymentMethodEnum")) {
+            message = "Phương thức thanh toán không hợp lệ.";
+        } else if (e.getMessage() != null && e.getMessage().contains("StatusEnum")) {
+            message = "Trạng thái không hợp lệ.";
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(buildError(400, message));
     }
 
     @ExceptionHandler(Exception.class)

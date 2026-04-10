@@ -19,6 +19,7 @@ import java.util.List;
 public class OrderController {
 
     private final OrderService orderService;
+    private final com.quyen.shoplite.service.PaymentService paymentService;
 
     @PostMapping
     @ApiMessage("Create order success")
@@ -44,5 +45,26 @@ public class OrderController {
             @PathVariable("id") Integer id,
             @RequestParam("status") StatusEnum status) {
         return ResponseEntity.ok(orderService.updateStatus(id, status));
+    }
+
+    @DeleteMapping("/{id}")
+    @ApiMessage("Cancel order success")
+    public ResponseEntity<Void> cancel(@PathVariable("id") Integer id) {
+        orderService.cancel(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/payments")
+    @ApiMessage("Create payment for order success")
+    public ResponseEntity<com.quyen.shoplite.domain.response.ResPaymentDTO> createPayment(
+            @PathVariable("id") Integer id,
+            @Valid @RequestBody com.quyen.shoplite.domain.request.ReqPaymentDTO req) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.createPayment(id, req));
+    }
+
+    @GetMapping("/{id}/payments")
+    @ApiMessage("Get payment for order success")
+    public ResponseEntity<com.quyen.shoplite.domain.response.ResPaymentDTO> getPaymentByOrderId(@PathVariable("id") Integer id) {
+        return ResponseEntity.ok(paymentService.findByOrderId(id));
     }
 }

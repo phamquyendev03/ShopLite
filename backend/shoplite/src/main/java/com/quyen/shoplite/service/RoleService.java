@@ -5,7 +5,9 @@ import com.quyen.shoplite.domain.Role;
 import com.quyen.shoplite.domain.request.ReqRoleDTO;
 import com.quyen.shoplite.domain.response.ResRoleDTO;
 import com.quyen.shoplite.repository.RoleRepository;
+import com.quyen.shoplite.util.error.BadRequestException;
 import com.quyen.shoplite.util.error.IdInvalidException;
+import com.quyen.shoplite.util.error.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,7 +30,7 @@ public class RoleService {
     @Transactional
     public ResRoleDTO create(ReqRoleDTO req) {
         if (roleRepository.existsByName(req.getName())) {
-            throw new IdInvalidException("Role '" + req.getName() + "' đã tồn tại");
+            throw new BadRequestException("Role '" + req.getName() + "' đã tồn tại");
         }
         List<Permission> permissions = resolvePermissions(req.getPermissionIds());
         Role role = Role.builder()
@@ -44,7 +46,7 @@ public class RoleService {
     // ─── Get by ID ─────────────────────────────────────────────────────────────
     public ResRoleDTO findById(Long id) {
         Role role = roleRepository.findById(id)
-                .orElseThrow(() -> new IdInvalidException("Không tìm thấy Role id=" + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Role id=" + id));
         return toDTO(role);
     }
 
@@ -52,12 +54,12 @@ public class RoleService {
     @Transactional
     public ResRoleDTO update(Long id, ReqRoleDTO req) {
         Role role = roleRepository.findById(id)
-                .orElseThrow(() -> new IdInvalidException("Không tìm thấy Role id=" + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Role id=" + id));
 
         // Kiểm tra tên trùng với role khác
         if (req.getName() != null && !req.getName().isBlank()
                 && roleRepository.existsByNameAndIdNot(req.getName(), id)) {
-            throw new IdInvalidException("Role '" + req.getName() + "' đã tồn tại");
+            throw new BadRequestException("Role '" + req.getName() + "' đã tồn tại");
         }
 
         if (req.getName() != null && !req.getName().isBlank()) role.setName(req.getName());
@@ -75,7 +77,7 @@ public class RoleService {
     // ─── Delete ────────────────────────────────────────────────────────────────
     public void delete(Long id) {
         if (!roleRepository.existsById(id)) {
-            throw new IdInvalidException("Không tìm thấy Role id=" + id);
+            throw new ResourceNotFoundException("Không tìm thấy Role id=" + id);
         }
         roleRepository.deleteById(id);
     }

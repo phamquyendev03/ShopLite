@@ -30,6 +30,7 @@ public class OrderService {
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
     private final InventoryLogsRepository inventoryLogsRepository;
+    private final CustomerRepository customerRepository;
     private final FcmService fcmService;
 
     @Transactional
@@ -37,6 +38,9 @@ public class OrderService {
         // 1. Tìm user
         User user = userRepository.findById(req.getUserId())
                 .orElseThrow(() -> new IdInvalidException("Không tìm thấy User id=" + req.getUserId()));
+
+        Customer customer = customerRepository.findById(req.getCustomerId())
+                .orElseThrow(() -> new IdInvalidException("Không tìm thấy Customer id=" + req.getCustomerId()));
 
         // 2. Tính tổng tiền & tạo order items
         double totalAmount = 0;
@@ -64,10 +68,14 @@ public class OrderService {
 
         double discount = req.getDiscount() != null ? req.getDiscount() : 0;
         double finalAmount = totalAmount - discount;
+        if (finalAmount < 0) {
+            throw new IdInvalidException("Tổng tiền đơn hàng sau khi giảm giá không được âm");
+        }
 
         // 3. Lưu Order
         Order order = Order.builder()
                 .user(user)
+                .customer(customer)
                 .code("ORD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
                 .totalAmount(finalAmount)
                 .discount(discount)
@@ -143,5 +151,36 @@ public class OrderService {
             order.setPaidAt(LocalDateTime.now());
         }
         return DTOMapper.toResOrderDTO(orderRepository.save(order));
+    }
+
+    @Transactional
+    public void cancel(Integer id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new IdInvalidException("Không tìm thấy Order id=" + id));
+
+        if (order.getStatus() == StatusEnum.CANCELLED) {
+            throw new IdInvalidException("Đơn hàng này đã được huỷ, không thể huỷ lại");
+        }
+
+        order.setStatus(StatusEnum.CANCELLED);
+        orderRepository.save(order);
+
+        List<OrderItems> items = orderItemsRepository.findAllByOrderId(id);
+        for (OrderItems item : items) {
+            Product product = item.getProduct();
+            int restoreQuantity = item.getQuantity().intValue();
+            int newStock = product.getStock() + restoreQuantity;
+            product.setStock(newStock);
+            productRepository.save(product);
+
+            inventoryLogsRepository.save(InventoryLogs.builder()
+                    .product(product)
+                    .quantityIn(restoreQuantity)
+                    .balanceAfter(newStock)
+                    .currentStock(newStock)
+                    .type(TypeInventoryEnum.RETURN)
+                    .createdAt(LocalDateTime.now())
+                    .build());
+        }
     }
 }

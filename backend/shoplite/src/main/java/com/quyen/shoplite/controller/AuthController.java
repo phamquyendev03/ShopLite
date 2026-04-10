@@ -5,6 +5,7 @@ import com.quyen.shoplite.domain.response.ResLoginDTO;
 import com.quyen.shoplite.service.AuthService;
 import com.quyen.shoplite.util.annotation.ApiMessage;
 import com.quyen.shoplite.util.error.IdInvalidException;
+import com.quyen.shoplite.util.error.UnauthorizedException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -30,7 +31,7 @@ public class AuthController {
     @ApiMessage("Refresh token success")
     public ResponseEntity<ResLoginDTO> refresh(@AuthenticationPrincipal Jwt refreshJwt) {
         if (refreshJwt == null) {
-            throw new IdInvalidException("Refresh token is invalid");
+            throw new UnauthorizedException("Refresh token is invalid");
         }
         return ResponseEntity.ok(authService.refresh(refreshJwt));
     }
@@ -39,8 +40,18 @@ public class AuthController {
     @ApiMessage("Get current user success")
     public ResponseEntity<Object> getCurrentUser(@AuthenticationPrincipal Jwt jwt) {
         if (jwt == null) {
-            throw new IdInvalidException("User is not authenticated");
+            throw new UnauthorizedException("User is not authenticated");
         }
         return ResponseEntity.ok(jwt.getSubject());
+    }
+
+    @PostMapping("/logout")
+    @ApiMessage("Logout success")
+    public ResponseEntity<Void> logout(@AuthenticationPrincipal Jwt refreshJwt) {
+        if (refreshJwt == null) {
+            throw new UnauthorizedException("Refresh token is invalid");
+        }
+        authService.logout(refreshJwt);
+        return ResponseEntity.noContent().build();
     }
 }
