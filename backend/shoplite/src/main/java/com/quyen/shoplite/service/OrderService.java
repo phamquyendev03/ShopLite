@@ -15,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -70,13 +69,11 @@ public class OrderService {
         Order order = Order.builder()
                 .user(user)
                 .code("ORD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
-                .customerName(req.getCustomerName())
                 .totalAmount(finalAmount)
                 .discount(discount)
-                .status(StatusEnum.PAID) // Thay đổi mặc định thành PAID khi thanh toán
-                .paymentMethod(req.getPaymentMethod())
-                .createdAt(LocalDate.now())
-                .paidAt(LocalDate.now())
+                .status(StatusEnum.COMPLETED)
+                .createdAt(LocalDateTime.now())
+                .paidAt(LocalDateTime.now())
                 .build();
         Order savedOrder = orderRepository.save(order);
 
@@ -88,15 +85,17 @@ public class OrderService {
 
             // Trừ stock
             Product product = item.getProduct();
-            product.setStock(product.getStock() - item.getQuantity());
+            int newStock = product.getStock() - item.getQuantity().intValue();
+            product.setStock(newStock);
             productRepository.save(product);
 
             // Ghi inventory log
             inventoryLogsRepository.save(InventoryLogs.builder()
                     .product(product)
-                    .changeQuantity((int) -item.getQuantity())
+                    .quantityOut(item.getQuantity().intValue())
+                    .balanceAfter(newStock)
+                    .currentStock(newStock)
                     .type(TypeInventoryEnum.SALE)
-                    .referenceId(savedOrder.getCode())
                     .createdAt(LocalDateTime.now())
                     .build());
         }
@@ -140,8 +139,8 @@ public class OrderService {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new IdInvalidException("Không tìm thấy Order id=" + id));
         order.setStatus(status);
-        if (status == StatusEnum.PAID) {
-            order.setPaidAt(LocalDate.now());
+        if (status == StatusEnum.COMPLETED) {
+            order.setPaidAt(LocalDateTime.now());
         }
         return DTOMapper.toResOrderDTO(orderRepository.save(order));
     }

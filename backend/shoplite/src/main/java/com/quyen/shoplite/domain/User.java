@@ -3,7 +3,7 @@ package com.quyen.shoplite.domain;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
@@ -24,6 +24,9 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Column(length = 20)
+    private String phone;
+
     /**
      * Thay từ RoleEnum → Role entity để hỗ trợ permission động.
      * Một User chỉ có MỘT role.
@@ -36,5 +39,5 @@ public class User {
     private boolean isActive;
 
     @Column(name = "created_at")
-    private LocalDate createdAt;
+    private LocalDateTime createdAt;
 }

@@ -3,6 +3,10 @@ package com.quyen.shoplite.util;
 import com.quyen.shoplite.domain.*;
 import com.quyen.shoplite.domain.response.*;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
 /**
  * Utility class để chuyển đổi (mapping) giữa Entity và DTO.
  * Theo cấu trúc dự án JobHunter.
@@ -36,6 +40,16 @@ public class DTOMapper {
         return dto;
     }
 
+    // ==================== Unit ====================
+    public static ResUnitDTO toResUnitDTO(Unit unit) {
+        if (unit == null) return null;
+        ResUnitDTO dto = new ResUnitDTO();
+        dto.setId(unit.getId());
+        dto.setName(unit.getName());
+        dto.setDescription(unit.getDescription());
+        return dto;
+    }
+
     // ==================== Product ====================
     public static ResProductDTO toResProductDTO(Product product) {
         if (product == null) return null;
@@ -50,6 +64,179 @@ public class DTOMapper {
         if (product.getCategory() != null) {
             dto.setCategoryId(product.getCategory().getId());
             dto.setCategoryName(product.getCategory().getName());
+        }
+        return dto;
+    }
+
+    // ==================== Customer ====================
+    public static ResCustomerDTO toResCustomerDTO(Customer customer) {
+        if (customer == null) return null;
+        ResCustomerDTO dto = new ResCustomerDTO();
+        dto.setId(customer.getId());
+        dto.setName(customer.getName());
+        dto.setPhone(customer.getPhone());
+        dto.setPoints(customer.getPoints());
+        return dto;
+    }
+
+    // ==================== Supplier ====================
+    public static ResSupplierDTO toResSupplierDTO(Supplier supplier) {
+        if (supplier == null) return null;
+        ResSupplierDTO dto = new ResSupplierDTO();
+        dto.setId(supplier.getId());
+        dto.setName(supplier.getName());
+        dto.setPhone(supplier.getPhone());
+        dto.setAddress(supplier.getAddress());
+        dto.setEmail(supplier.getEmail());
+        dto.setCreatedAt(supplier.getCreatedAt());
+        return dto;
+    }
+
+    // ==================== Office ====================
+    public static ResOfficeDTO toResOfficeDTO(Office office) {
+        if (office == null) return null;
+        ResOfficeDTO dto = new ResOfficeDTO();
+        dto.setId(office.getId());
+        dto.setName(office.getName());
+        dto.setOfficeLat(office.getOfficeLat());
+        dto.setOfficeLng(office.getOfficeLng());
+        dto.setRadius(office.getRadius());
+        return dto;
+    }
+
+    // ==================== Employee ====================
+    public static ResEmployeeDTO toResEmployeeDTO(Employee employee) {
+        if (employee == null) return null;
+        ResEmployeeDTO dto = new ResEmployeeDTO();
+        dto.setId(employee.getId());
+        dto.setSalaryRate(employee.getSalaryRate());
+        dto.setQr(employee.getQr());
+        if (employee.getUser() != null) {
+            dto.setUserId(employee.getUser().getId());
+            dto.setUsername(employee.getUser().getUsername());
+        }
+        if (employee.getOffice() != null) {
+            dto.setOfficeId(employee.getOffice().getId());
+            dto.setOfficeName(employee.getOffice().getName());
+        }
+        return dto;
+    }
+
+    // ==================== Attendance ====================
+    public static ResAttendanceDTO toResAttendanceDTO(Attendance attendance) {
+        if (attendance == null) return null;
+        ResAttendanceDTO dto = new ResAttendanceDTO();
+        dto.setId(attendance.getId());
+        dto.setCheckIn(attendance.getCheckIn());
+        dto.setCheckOut(attendance.getCheckOut());
+        dto.setHours(attendance.getHours());
+        dto.setWorkingDay(attendance.getWorkingDay());
+        dto.setLatitude(attendance.getLatitude());
+        dto.setLongitude(attendance.getLongitude());
+        dto.setDistance(attendance.getDistance());
+        dto.setLateMinutes(attendance.getLateMinutes());
+        dto.setStatus(attendance.getStatus());
+        if (attendance.getEmployee() != null) {
+            dto.setEmployeeId(attendance.getEmployee().getId());
+            if (attendance.getEmployee().getUser() != null) {
+                dto.setEmployeeUsername(attendance.getEmployee().getUser().getUsername());
+            }
+        }
+        if (attendance.getOffice() != null) {
+            dto.setOfficeId(attendance.getOffice().getId());
+            dto.setOfficeName(attendance.getOffice().getName());
+        }
+        return dto;
+    }
+
+    // ==================== Payroll ====================
+    public static ResPayrollDTO toResPayrollDTO(Payroll payroll) {
+        if (payroll == null) return null;
+        ResPayrollDTO dto = new ResPayrollDTO();
+        dto.setId(payroll.getId());
+        dto.setPeriod(payroll.getPeriod());
+        dto.setSalaryRate(payroll.getSalaryRate());
+        dto.setTotalHours(payroll.getTotalHours());
+        dto.setBonus(payroll.getBonus());
+        dto.setPenalty(payroll.getPenalty());
+        dto.setTotalSalary(payroll.getTotalSalary());
+        if (payroll.getEmployee() != null) {
+            dto.setEmployeeId(payroll.getEmployee().getId());
+            if (payroll.getEmployee().getUser() != null) {
+                dto.setEmployeeUsername(payroll.getEmployee().getUser().getUsername());
+            }
+        }
+        return dto;
+    }
+
+    // ==================== Payment ====================
+    public static ResPaymentDTO toResPaymentDTO(Payment payment) {
+        if (payment == null) return null;
+        ResPaymentDTO dto = new ResPaymentDTO();
+        dto.setId(payment.getId());
+        dto.setMethod(payment.getMethod());
+        dto.setAmount(payment.getAmount());
+        dto.setStatus(payment.getStatus());
+        if (payment.getOrder() != null) {
+            dto.setOrderId(payment.getOrder().getId());
+            dto.setOrderCode(payment.getOrder().getCode());
+        }
+        return dto;
+    }
+
+    // ==================== ImportItem ====================
+    public static ResImportItemDTO toResImportItemDTO(ImportItem item) {
+        if (item == null) return null;
+        ResImportItemDTO dto = new ResImportItemDTO();
+        dto.setId(item.getId());
+        dto.setQuantity(item.getQuantity());
+        dto.setImportPrice(item.getImportPrice());
+        dto.setSubTotal(item.getSubTotal());
+        if (item.getProduct() != null) {
+            dto.setProductId(item.getProduct().getId());
+            dto.setProductName(item.getProduct().getName());
+            dto.setProductSku(item.getProduct().getSku());
+        }
+        return dto;
+    }
+
+    // ==================== ImportOrder ====================
+    public static ResImportOrderDTO toResImportOrderDTO(ImportOrder importOrder, List<ImportItem> items) {
+        if (importOrder == null) return null;
+        ResImportOrderDTO dto = new ResImportOrderDTO();
+        dto.setId(importOrder.getId());
+        dto.setTax(importOrder.getTax());
+        dto.setDiscount(importOrder.getDiscount());
+        dto.setTotalAmount(importOrder.getTotalAmount());
+        dto.setAmountPaid(importOrder.getAmountPaid());
+        dto.setStatus(importOrder.getStatus());
+        dto.setNote(importOrder.getNote());
+        dto.setCreatedAt(importOrder.getCreatedAt());
+        if (importOrder.getSupplier() != null) {
+            dto.setSupplierId(importOrder.getSupplier().getId());
+            dto.setSupplierName(importOrder.getSupplier().getName());
+        }
+        if (items != null) {
+            dto.setItems(items.stream().map(DTOMapper::toResImportItemDTO).collect(Collectors.toList()));
+        } else {
+            dto.setItems(Collections.emptyList());
+        }
+        return dto;
+    }
+
+    // ==================== InventoryAdjustment ====================
+    public static ResInventoryAdjustmentDTO toResInventoryAdjustmentDTO(InventoryAdjustment adjustment, List<InventoryLogs> logs) {
+        if (adjustment == null) return null;
+        ResInventoryAdjustmentDTO dto = new ResInventoryAdjustmentDTO();
+        dto.setId(adjustment.getId());
+        dto.setReason(adjustment.getReason());
+        dto.setNote(adjustment.getNote());
+        dto.setCreatedBy(adjustment.getCreatedBy());
+        dto.setCreatedAt(adjustment.getCreatedAt());
+        if (logs != null) {
+            dto.setLogs(logs.stream().map(DTOMapper::toResInventoryLogDTO).collect(Collectors.toList()));
+        } else {
+            dto.setLogs(Collections.emptyList());
         }
         return dto;
     }
@@ -75,13 +262,16 @@ public class DTOMapper {
         ResOrderDTO dto = new ResOrderDTO();
         dto.setId(order.getId());
         dto.setCode(order.getCode());
-        dto.setCustomerName(order.getCustomerName());
+        dto.setRequestId(order.getRequestId());
         dto.setTotalAmount(order.getTotalAmount());
         dto.setDiscount(order.getDiscount());
         dto.setStatus(order.getStatus());
-        dto.setPaymentMethod(order.getPaymentMethod());
         dto.setCreatedAt(order.getCreatedAt());
         dto.setPaidAt(order.getPaidAt());
+        if (order.getCustomer() != null) {
+            dto.setCustomerId(order.getCustomer().getId());
+            dto.setCustomerName(order.getCustomer().getName());
+        }
         if (order.getUser() != null) {
             dto.setUserId(order.getUser().getId());
             dto.setUsername(order.getUser().getUsername());
@@ -94,8 +284,6 @@ public class DTOMapper {
         if (transaction == null) return null;
         ResTransactionDTO dto = new ResTransactionDTO();
         dto.setId(transaction.getId());
-        dto.setExternalId(transaction.getExternalId());
-        dto.setBankCode(transaction.getBankCode());
         dto.setAmount(transaction.getAmount());
         dto.setType(transaction.getType());
         dto.setContent(transaction.getContent());
@@ -105,6 +293,15 @@ public class DTOMapper {
             dto.setOrderId(transaction.getOrder().getId());
             dto.setOrderCode(transaction.getOrder().getCode());
         }
+        if (transaction.getImportOrder() != null) {
+            dto.setImportOrderId(transaction.getImportOrder().getId());
+        }
+        if (transaction.getPayment() != null) {
+            dto.setPaymentId(transaction.getPayment().getId());
+        }
+        if (transaction.getPayroll() != null) {
+            dto.setPayrollId(transaction.getPayroll().getId());
+        }
         return dto;
     }
 
@@ -113,9 +310,11 @@ public class DTOMapper {
         if (log == null) return null;
         ResInventoryLogDTO dto = new ResInventoryLogDTO();
         dto.setId(log.getId());
-        dto.setChangeQuantity(log.getChangeQuantity());
+        dto.setQuantityIn(log.getQuantityIn());
+        dto.setQuantityOut(log.getQuantityOut());
+        dto.setBalanceAfter(log.getBalanceAfter());
+        dto.setCurrentStock(log.getCurrentStock());
         dto.setType(log.getType());
-        dto.setReferenceId(log.getReferenceId());
         dto.setCreatedAt(log.getCreatedAt());
         if (log.getProduct() != null) {
             dto.setProductId(log.getProduct().getId());

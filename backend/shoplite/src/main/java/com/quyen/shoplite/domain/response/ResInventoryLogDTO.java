@@ -10,9 +10,11 @@ import java.time.LocalDateTime;
 @Setter
 public class ResInventoryLogDTO {
     private Integer id;
-    private Integer changeQuantity;
+    private Integer quantityIn;
+    private Integer quantityOut;
+    private Integer balanceAfter;
+    private Integer currentStock;
     private TypeInventoryEnum type;
-    private String referenceId;
     private LocalDateTime createdAt;
     private Integer productId;
     private String productName;

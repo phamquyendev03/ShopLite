@@ -4,5 +4,5 @@ public enum TypeInventoryEnum {
     IMPORT,
     SALE,
     ADJUST,
-    CANCEL
+    RETURN
 }

@@ -110,11 +110,7 @@ public class SePayService {
         Double amount = Double.valueOf(payload.get("amount").toString());
         String content = String.valueOf(payload.get("content"));
 
-        // Idempotency Step 1: Pre-check to save DB attempts (Optional but good practice)
-        if (transactionRepository.existsByExternalId(transactionId)) {
-            log.info("Webhook duplicate pre-check: Transaction {} already processed.", transactionId);
-            return;
-        }
+        // Note: idempotency pre-check removed (no externalId field). Consider checking by content+orderId.
 
         // Step 3: Extract order_code
         String orderCode = extractOrderCode(content);
@@ -131,7 +127,7 @@ public class SePayService {
             return;
         }
 
-        if (order.getStatus() == StatusEnum.PAID) {
+        if (order.getStatus() == StatusEnum.COMPLETED) {
             log.info("Order {} is already PAID. Webhook duplicate/delayed.", orderCode);
             return;
         }
@@ -145,10 +141,8 @@ public class SePayService {
 
         // Step 5: Save transaction and update order (Transactional ensures both succeed or fail together)
         Transaction transaction = Transaction.builder()
-                .externalId(transactionId)
-                .bankCode("SEPAY_WEBHOOK")
                 .amount(amount)
-                .type(TypeTransactionEnum.IN)
+                .type(TypeTransactionEnum.REVENUE)
                 .content(content)
                 .transactionTime(LocalDateTime.now())
                 .createdAt(LocalDateTime.now())
@@ -163,8 +157,8 @@ public class SePayService {
             return;
         }
 
-        order.setStatus(StatusEnum.PAID);
-        order.setPaidAt(java.time.LocalDate.now());
+        order.setStatus(StatusEnum.COMPLETED);
+        order.setPaidAt(LocalDateTime.now());
         orderRepository.save(order);
 
         log.info("Successfully updated order {} to PAID state from SePay webhook.", orderCode);

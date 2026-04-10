@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface TransactionRepository extends JpaRepository<Transaction, Integer> {
-    List<Transaction> findAllByOrderId(Integer orderId);
+    List<Transaction> findAllByOrder_Id(Integer orderId);
     List<Transaction> findAllByType(TypeTransactionEnum type);
-    boolean existsByExternalId(String externalId);
 }

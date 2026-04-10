@@ -28,8 +28,6 @@ public class TransactionService {
                     .orElseThrow(() -> new IdInvalidException("Không tìm thấy Order id=" + req.getOrderId()));
         }
         Transaction transaction = Transaction.builder()
-                .externalId(req.getExternalId())
-                .bankCode(req.getBankCode())
                 .amount(req.getAmount())
                 .type(req.getType())
                 .content(req.getContent())
@@ -53,7 +51,7 @@ public class TransactionService {
     }
 
     public List<ResTransactionDTO> findByOrderId(Integer orderId) {
-        return transactionRepository.findAllByOrderId(orderId).stream()
+        return transactionRepository.findAllByOrder_Id(orderId).stream()
                 .map(DTOMapper::toResTransactionDTO)
                 .toList();
     }

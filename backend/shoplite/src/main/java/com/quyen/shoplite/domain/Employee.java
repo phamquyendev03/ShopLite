@@ -1,0 +1,35 @@
+package com.quyen.shoplite.domain;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Table(name = "employees")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Employee {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+
+    /** Base salary rate (per hour or per day) */
+    @Column(name = "salary_rate", nullable = false)
+    private Double salaryRate;
+
+    /** QR code string used for check-in */
+    @Column(length = 300)
+    private String qr;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "office_id")
+    private Office office;
+
+    /** 1-1 or 1-n mapping to User */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+}

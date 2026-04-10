@@ -7,6 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface InventoryLogsRepository extends JpaRepository<InventoryLogs, Integer> {
-    List<InventoryLogs> findAllByProductId(Integer productId);
+    List<InventoryLogs> findAllByProduct_Id(Integer productId);
     List<InventoryLogs> findAllByType(TypeInventoryEnum type);
 }

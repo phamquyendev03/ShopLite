@@ -19,20 +19,38 @@ public class InventoryLogs {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "change_quantity", nullable = false)
-    private Integer changeQuantity;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", nullable = false)
+    private Product product;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "adjustment_id")
+    private InventoryAdjustment adjustment;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "import_item_id")
+    private ImportItem importItem;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_item_id")
+    private OrderItems orderItem;
+
+    @Column(name = "quantity_in")
+    private Integer quantityIn;
+
+    @Column(name = "quantity_out")
+    private Integer quantityOut;
+
+    @Column(name = "balance_after", nullable = false)
+    private Integer balanceAfter;
+
+    @Column(name = "current_stock", nullable = false)
+    private Integer currentStock;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TypeInventoryEnum type;
 
-    @Column(name = "reference_id", length = 100)
-    private String referenceId;
-
     @Column(name = "created_at")
     private LocalDateTime createdAt;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
 }

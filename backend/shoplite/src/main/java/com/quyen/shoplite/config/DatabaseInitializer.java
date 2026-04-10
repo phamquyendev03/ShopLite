@@ -120,7 +120,7 @@ public class DatabaseInitializer implements CommandLineRunner {
                 .password(passwordEncoder.encode("admin123"))
                 .role(adminRole)
                 .isActive(true)
-                .createdAt(LocalDate.now())
+                .createdAt(LocalDateTime.now())
                 .build();
         userRepository.save(admin);
         log.info("Tạo tài khoản mặc định: username=admin / password=admin123");

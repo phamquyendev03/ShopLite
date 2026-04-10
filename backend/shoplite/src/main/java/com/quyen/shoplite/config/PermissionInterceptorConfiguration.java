@@ -16,10 +16,8 @@ public class PermissionInterceptorConfiguration implements WebMvcConfigurer {
         registry.addInterceptor(permissionInterceptor)
                 .addPathPatterns("/api/v1/**")
                 .excludePathPatterns(
-                        // Auth endpoints (public)
                         "/api/v1/auth/login",
                         "/api/v1/auth/refresh",
-                        // Swagger / OpenAPI
                         "/swagger-ui/**",
                         "/v3/api-docs/**",
                         "/swagger-ui.html"

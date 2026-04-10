@@ -25,19 +25,24 @@ public class InventoryLogService {
         Product product = productRepository.findById(req.getProductId())
                 .orElseThrow(() -> new IdInvalidException("Không tìm thấy Product id=" + req.getProductId()));
 
-        InventoryLogs log = InventoryLogs.builder()
-                .product(product)
-                .changeQuantity(req.getChangeQuantity())
-                .type(req.getType())
-                .referenceId(req.getReferenceId())
-                .createdAt(LocalDateTime.now())
-                .build();
+        int changeQty = req.getChangeQuantity();
+        int currentStock = product.getStock();
+        int newStock = currentStock + changeQty;
 
-        // Cập nhật tồn kho theo loại
-        long newStock = product.getStock() + req.getChangeQuantity();
         if (newStock < 0) {
             throw new IdInvalidException("Tồn kho không đủ cho Product id=" + req.getProductId());
         }
+
+        InventoryLogs log = InventoryLogs.builder()
+                .product(product)
+                .quantityIn(changeQty > 0 ? changeQty : null)
+                .quantityOut(changeQty < 0 ? -changeQty : null)
+                .balanceAfter(newStock)
+                .currentStock(newStock)
+                .type(req.getType())
+                .createdAt(LocalDateTime.now())
+                .build();
+
         product.setStock(newStock);
         productRepository.save(product);
 
@@ -51,7 +56,7 @@ public class InventoryLogService {
     }
 
     public List<ResInventoryLogDTO> findByProductId(Integer productId) {
-        return inventoryLogsRepository.findAllByProductId(productId).stream()
+        return inventoryLogsRepository.findAllByProduct_Id(productId).stream()
                 .map(DTOMapper::toResInventoryLogDTO)
                 .toList();
     }

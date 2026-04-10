@@ -19,12 +19,6 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "external_id", length = 100, unique = true)
-    private String externalId;
-
-    @Column(name = "bank_code", length = 50)
-    private String bankCode;
-
     @Column(nullable = false)
     private Double amount;
 
@@ -35,13 +29,26 @@ public class Transaction {
     @Column(length = 500)
     private String content;
 
+    // --- References (FK links to source documents) ---
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id")
+    private Order order;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "import_order_id")
+    private ImportOrder importOrder;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_id")
+    private Payment payment;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payroll_id")
+    private Payroll payroll;
+
     @Column(name = "transaction_time")
     private LocalDateTime transactionTime;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id")
-    private Order order;
 }

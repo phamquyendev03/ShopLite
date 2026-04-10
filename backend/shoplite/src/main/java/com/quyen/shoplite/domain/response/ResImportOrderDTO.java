@@ -1,0 +1,29 @@
+package com.quyen.shoplite.domain.response;
+
+import com.quyen.shoplite.util.constant.ImportOrderStatusEnum;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Getter
+@Setter
+public class ResImportOrderDTO {
+    private Integer id;
+
+    // --- Supplier info ---
+    private Integer supplierId;
+    private String supplierName;
+
+    private Double tax;
+    private Double discount;
+    private Double totalAmount;
+    private Double amountPaid;
+    private ImportOrderStatusEnum status;
+    private String note;
+    private LocalDateTime createdAt;
+
+    /** Chi tiết từng sản phẩm nhập */
+    private List<ResImportItemDTO> items;
+}

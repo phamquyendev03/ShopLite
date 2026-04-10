@@ -10,8 +10,6 @@ import java.time.LocalDateTime;
 @Setter
 public class ResTransactionDTO {
     private Integer id;
-    private String externalId;
-    private String bankCode;
     private Double amount;
     private TypeTransactionEnum type;
     private String content;
@@ -19,4 +17,7 @@ public class ResTransactionDTO {
     private LocalDateTime createdAt;
     private Integer orderId;
     private String orderCode;
+    private Integer importOrderId;
+    private Integer paymentId;
+    private Integer payrollId;
 }

@@ -19,7 +19,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -44,10 +44,10 @@ public class ProductService {
                 .category(category)
                 .name(req.getName())
                 .sku(req.getSku())
-                .stock(0L)          // stock luôn = 0 khi tạo mới
+                .stock(0)           // stock luôn = 0 khi tạo mới
                 .price(req.getPrice())
                 .isDeleted(false)
-                .createdAt(LocalDate.now())
+                .createdAt(LocalDateTime.now())
                 .build();
 
         return DTOMapper.toResProductDTO(productRepository.save(product));

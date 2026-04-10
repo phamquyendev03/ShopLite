@@ -3,7 +3,7 @@ package com.quyen.shoplite.domain.response;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -13,8 +13,8 @@ public class ResProductDTO {
     private String categoryName;
     private String name;
     private String sku;
-    private Long stock;
+    private Integer stock;
     private Double price;
     private boolean isDeleted;
-    private LocalDate createdAt;
+    private LocalDateTime createdAt;
 }
