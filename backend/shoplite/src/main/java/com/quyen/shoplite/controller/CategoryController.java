@@ -1,9 +1,10 @@
 package com.quyen.shoplite.controller;
 
-import com.quyen.shoplite.domain.request.ReqCategoryDTO;
+import com.quyen.shoplite.domain.request.ReqCategoryUpsertDTO;
 import com.quyen.shoplite.domain.response.ResCategoryDTO;
 import com.quyen.shoplite.service.CategoryService;
 import com.quyen.shoplite.util.annotation.ApiMessage;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,31 +20,31 @@ public class CategoryController {
     private final CategoryService categoryService;
 
     @PostMapping
-    @ApiMessage("Tạo danh mục thành công")
-    public ResponseEntity<ResCategoryDTO> create(@RequestBody ReqCategoryDTO req) {
+    @ApiMessage("Create category success")
+    public ResponseEntity<ResCategoryDTO> create(@Valid @RequestBody ReqCategoryUpsertDTO req) {
         return ResponseEntity.status(HttpStatus.CREATED).body(categoryService.create(req));
     }
 
     @GetMapping("/{id}")
-    @ApiMessage("Lấy thông tin danh mục")
+    @ApiMessage("Get category success")
     public ResponseEntity<ResCategoryDTO> findById(@PathVariable Integer id) {
         return ResponseEntity.ok(categoryService.findById(id));
     }
 
     @GetMapping
-    @ApiMessage("Danh sách danh mục")
+    @ApiMessage("Get categories success")
     public ResponseEntity<List<ResCategoryDTO>> findAll() {
         return ResponseEntity.ok(categoryService.findAll());
     }
 
     @PutMapping("/{id}")
-    @ApiMessage("Cập nhật danh mục thành công")
-    public ResponseEntity<ResCategoryDTO> update(@PathVariable Integer id, @RequestBody ReqCategoryDTO req) {
+    @ApiMessage("Update category success")
+    public ResponseEntity<ResCategoryDTO> update(@PathVariable Integer id, @Valid @RequestBody ReqCategoryUpsertDTO req) {
         return ResponseEntity.ok(categoryService.update(id, req));
     }
 
     @DeleteMapping("/{id}")
-    @ApiMessage("Xoá danh mục thành công")
+    @ApiMessage("Delete category success")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         categoryService.delete(id);
         return ResponseEntity.noContent().build();

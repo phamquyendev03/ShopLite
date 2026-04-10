@@ -2,11 +2,13 @@ package com.quyen.shoplite.util.error;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -27,6 +29,18 @@ public class GlobalException {
                 .body(buildError(400, e.getMessage()));
     }
 
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<Map<String, Object>> handleBadRequestException(BadRequestException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(buildError(400, e.getMessage()));
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleResourceNotFoundException(ResourceNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(buildError(404, e.getMessage()));
+    }
+
     @ExceptionHandler(PermissionException.class)
     public ResponseEntity<Map<String, Object>> handlePermissionException(PermissionException e) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -35,16 +49,36 @@ public class GlobalException {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationException(MethodArgumentNotValidException e) {
-        String message = e.getBindingResult().getFieldErrors().stream()
-                .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
+        String message = e.getBindingResult().getAllErrors().stream()
+                .map(error -> {
+                    if (error instanceof FieldError fieldError) {
+                        return fieldError.getField() + ": " + fieldError.getDefaultMessage();
+                    }
+                    return error.getDefaultMessage();
+                })
                 .collect(Collectors.joining("; "));
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(buildError(400, message));
+
+        Map<String, Object> body = buildError(400, message);
+        List<Map<String, String>> errors = e.getBindingResult().getAllErrors().stream()
+                .map(error -> {
+                    Map<String, String> item = new LinkedHashMap<>();
+                    if (error instanceof FieldError fieldError) {
+                        item.put("field", fieldError.getField());
+                    } else {
+                        item.put("field", error.getObjectName());
+                    }
+                    item.put("message", error.getDefaultMessage());
+                    return item;
+                })
+                .toList();
+        body.put("errors", errors);
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(buildError(500, "Lỗi hệ thống: " + e.getMessage()));
+                .body(buildError(500, "System error: " + e.getMessage()));
     }
 }

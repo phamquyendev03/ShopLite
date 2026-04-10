@@ -75,7 +75,6 @@ public class UserService {
                 .orElseThrow(() -> new IdInvalidException("Không tìm thấy User: " + username));
     }
 
-    // ─── Helper ────────────────────────────────────────────────────────────────
     private Role resolveRole(Long roleId) {
         if (roleId == null) return null;
         return roleRepository.findById(roleId)

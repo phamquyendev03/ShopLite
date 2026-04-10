@@ -1,7 +1,6 @@
 package com.quyen.shoplite.controller;
 
-import com.quyen.shoplite.domain.request.ReqProductDTO;
-import com.quyen.shoplite.domain.request.ReqUpdateProductDTO;
+import com.quyen.shoplite.domain.request.ReqProductUpsertDTO;
 import com.quyen.shoplite.domain.response.ResProductDTO;
 import com.quyen.shoplite.domain.response.ResProductPageDTO;
 import com.quyen.shoplite.service.ProductService;
@@ -19,41 +18,37 @@ public class ProductController {
 
     private final ProductService productService;
 
-    /**
-     * POST /api/v1/products
-     * Tạo sản phẩm mới. Stock mặc định = 0.
-     */
+
     @PostMapping
-    @ApiMessage("Tạo sản phẩm thành công")
-    public ResponseEntity<ResProductDTO> create(@Valid @RequestBody ReqProductDTO req) {
+    @ApiMessage("Create product successfully")
+    public ResponseEntity<ResProductDTO> create(@Valid @RequestBody ReqProductUpsertDTO req) {
         return ResponseEntity.status(HttpStatus.CREATED).body(productService.create(req));
     }
 
     /**
      * GET /api/v1/products/{id}
-     * Lấy thông tin một sản phẩm theo id.
+     * Láº¥y thÃ´ng tin má»™t sáº£n pháº©m theo id.
      */
     @GetMapping("/{id}")
-    @ApiMessage("Lấy thông tin sản phẩm")
+    @ApiMessage("Get product successfully")
     public ResponseEntity<ResProductDTO> findById(@PathVariable Integer id) {
         return ResponseEntity.ok(productService.findById(id));
     }
 
     /**
      * GET /api/v1/products
-     * Tìm kiếm sản phẩm với filter + phân trang + sắp xếp.
      *
-     * @param keyword    Tìm theo tên hoặc SKU
-     * @param categoryId Lọc theo category
-     * @param minPrice   Giá tối thiểu
-     * @param maxPrice   Giá tối đa
-     * @param page       Trang (bắt đầu từ 0)
-     * @param size       Số item mỗi trang (mặc định 10)
-     * @param sortBy     Trường sắp xếp (mặc định: createdAt)
-     * @param sortDir    Hướng sắp xếp: asc | desc (mặc định: desc)
+     * @param keyword    Search by name or SKU
+     * @param categoryId Filter by category
+     * @param minPrice   Minimum price
+     * @param maxPrice   Maximum price
+     * @param page       Page (starting from 0)
+     * @param size       Number of items per page (default: 10)
+     * @param sortBy     Sort by (default: createdAt)
+     * @param sortDir    Sort direction: asc | desc (default: desc)
      */
     @GetMapping
-    @ApiMessage("Danh sách sản phẩm")
+    @ApiMessage("Get products successfully")
     public ResponseEntity<ResProductPageDTO> getProducts(
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "categoryId", required = false) Integer categoryId,
@@ -71,24 +66,25 @@ public class ProductController {
 
     /**
      * PUT /api/v1/products/{id}
-     * Cập nhật sản phẩm (name, price, category).
-     * Không cho phép thay đổi stock.
+     * Update product (name, price, category).
+     * Stock cannot be changed.
      */
     @PutMapping("/{id}")
-    @ApiMessage("Cập nhật sản phẩm thành công")
+    @ApiMessage("Update product successfully")
     public ResponseEntity<ResProductDTO> update(@PathVariable Integer id,
-                                                @Valid @RequestBody ReqUpdateProductDTO req) {
+                                                @Valid @RequestBody ReqProductUpsertDTO req) {
         return ResponseEntity.ok(productService.update(id, req));
     }
 
     /**
      * DELETE /api/v1/products/{id}
-     * Xóa mềm sản phẩm (is_deleted = true).
+     * Soft delete product (is_deleted = true).
      */
     @DeleteMapping("/{id}")
-    @ApiMessage("Xoá sản phẩm thành công")
+    @ApiMessage("Soft delete product successfully")
     public ResponseEntity<Void> softDelete(@PathVariable Integer id) {
         productService.softDelete(id);
         return ResponseEntity.noContent().build();
     }
 }
+

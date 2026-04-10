@@ -2,15 +2,17 @@ package com.quyen.shoplite.service;
 
 import com.quyen.shoplite.domain.Category;
 import com.quyen.shoplite.domain.Product;
-import com.quyen.shoplite.domain.request.ReqProductDTO;
-import com.quyen.shoplite.domain.request.ReqUpdateProductDTO;
+import com.quyen.shoplite.domain.Unit;
+import com.quyen.shoplite.domain.request.ReqProductUpsertDTO;
 import com.quyen.shoplite.domain.response.ResProductDTO;
 import com.quyen.shoplite.domain.response.ResProductPageDTO;
 import com.quyen.shoplite.repository.CategoryRepository;
 import com.quyen.shoplite.repository.ProductRepository;
+import com.quyen.shoplite.repository.UnitRepository;
 import com.quyen.shoplite.util.DTOMapper;
 import com.quyen.shoplite.util.ProductSpecification;
-import com.quyen.shoplite.util.error.IdInvalidException;
+import com.quyen.shoplite.util.error.BadRequestException;
+import com.quyen.shoplite.util.error.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -18,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -27,24 +30,29 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private final UnitRepository unitRepository;
 
-    // ─── Create ────────────────────────────────────────────────────────────────
-    public ResProductDTO create(ReqProductDTO req) {
-        // 1. Validate SKU unique
-        if (productRepository.existsBySku(req.getSku())) {
-            throw new IdInvalidException("SKU '" + req.getSku() + "' đã tồn tại");
+    @Transactional
+    public ResProductDTO create(ReqProductUpsertDTO req) {
+        if (hasText(req.getSku()) && productRepository.existsBySku(req.getSku().trim())) {
+            throw new BadRequestException("SKU already exists: " + req.getSku().trim());
+        }
+        if (req.getBarcode() != null && productRepository.existsByBarcode(req.getBarcode())) {
+            throw new BadRequestException("Barcode already exists: " + req.getBarcode());
         }
 
-        // 2. Validate category
         Category category = categoryRepository.findById(req.getCategoryId())
-                .orElseThrow(() -> new IdInvalidException("Không tìm thấy Category id=" + req.getCategoryId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id=" + req.getCategoryId()));
+        Unit unit = unitRepository.findById(req.getUnitId())
+                .orElseThrow(() -> new ResourceNotFoundException("Unit not found with id=" + req.getUnitId()));
 
-        // 3. Insert product (stock = 0)
         Product product = Product.builder()
                 .category(category)
-                .name(req.getName())
-                .sku(req.getSku())
-                .stock(0)           // stock luôn = 0 khi tạo mới
+                .unit(unit)
+                .name(req.getName().trim())
+                .sku(normalize(req.getSku()))
+                .barcode(req.getBarcode())
+                .stock(req.getStock())
                 .price(req.getPrice())
                 .isDeleted(false)
                 .createdAt(LocalDateTime.now())
@@ -53,17 +61,15 @@ public class ProductService {
         return DTOMapper.toResProductDTO(productRepository.save(product));
     }
 
-    // ─── Get by ID ─────────────────────────────────────────────────────────────
     public ResProductDTO findById(Integer id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new IdInvalidException("Không tìm thấy Product id=" + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id=" + id));
         if (product.isDeleted()) {
-            throw new IdInvalidException("Sản phẩm id=" + id + " đã bị xóa");
+            throw new ResourceNotFoundException("Product not found with id=" + id);
         }
         return DTOMapper.toResProductDTO(product);
     }
 
-    // ─── Get Products (filter + pagination + sorting) ──────────────────────────
     public ResProductPageDTO getProducts(String keyword, Integer categoryId,
                                          Double minPrice, Double maxPrice,
                                          int page, int size, String sortBy, String sortDir) {
@@ -86,45 +92,68 @@ public class ProductService {
         return result;
     }
 
-    // ─── Update ────────────────────────────────────────────────────────────────
-    public ResProductDTO update(Integer id, ReqUpdateProductDTO req) {
+    @Transactional
+    public ResProductDTO update(Integer id, ReqProductUpsertDTO req) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new IdInvalidException("Không tìm thấy Product id=" + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id=" + id));
 
         if (product.isDeleted()) {
-            throw new IdInvalidException("Không thể cập nhật sản phẩm đã bị xóa");
+            throw new ResourceNotFoundException("Product not found with id=" + id);
         }
 
-        if (req.getCategoryId() != null) {
-            Category category = categoryRepository.findById(req.getCategoryId())
-                    .orElseThrow(() -> new IdInvalidException("Không tìm thấy Category id=" + req.getCategoryId()));
-            product.setCategory(category);
+        String normalizedSku = normalize(req.getSku());
+        if (hasText(normalizedSku) && productRepository.existsBySkuAndIdNot(normalizedSku, id)) {
+            throw new BadRequestException("SKU already exists: " + normalizedSku);
         }
-        if (req.getName() != null && !req.getName().isBlank()) {
-            product.setName(req.getName());
+        if (req.getBarcode() != null && productRepository.existsByBarcodeAndIdNot(req.getBarcode(), id)) {
+            throw new BadRequestException("Barcode already exists: " + req.getBarcode());
         }
-        if (req.getPrice() != null) {
-            product.setPrice(req.getPrice());
-        }
-        // ⚠️ Không cho phép đổi stock — stock chỉ thay đổi qua InventoryLog
+
+        Category category = categoryRepository.findById(req.getCategoryId())
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id=" + req.getCategoryId()));
+        Unit unit = unitRepository.findById(req.getUnitId())
+                .orElseThrow(() -> new ResourceNotFoundException("Unit not found with id=" + req.getUnitId()));
+
+        product.setCategory(category);
+        product.setUnit(unit);
+        product.setName(req.getName().trim());
+        product.setSku(normalizedSku);
+        product.setBarcode(req.getBarcode());
+        product.setStock(req.getStock());
+        product.setPrice(req.getPrice());
 
         return DTOMapper.toResProductDTO(productRepository.save(product));
     }
 
-    // ─── Soft Delete ───────────────────────────────────────────────────────────
+    @Transactional
     public void softDelete(Integer id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new IdInvalidException("Không tìm thấy Product id=" + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id=" + id));
         if (product.isDeleted()) {
-            throw new IdInvalidException("Sản phẩm id=" + id + " đã bị xóa trước đó");
+            throw new ResourceNotFoundException("Product not found with id=" + id);
         }
         product.setDeleted(true);
         productRepository.save(product);
     }
 
-    // ─── Internal use (OrderService) ──────────────────────────────────────────
     public Product findEntityById(Integer id) {
-        return productRepository.findById(id)
-                .orElseThrow(() -> new IdInvalidException("Không tìm thấy Product id=" + id));
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id=" + id));
+        if (product.isDeleted()) {
+            throw new ResourceNotFoundException("Product not found with id=" + id);
+        }
+        return product;
+    }
+
+    private String normalize(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }
+

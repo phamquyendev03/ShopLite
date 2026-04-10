@@ -1,7 +1,7 @@
 package com.quyen.shoplite.domain.request;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -11,16 +11,15 @@ import java.util.List;
 @Setter
 public class ReqImportOrderDTO {
 
-    @NotNull(message = "supplierId không được để trống")
+    @NotNull(message = "supplierId must not be null")
     private Integer supplierId;
 
-    @NotNull(message = "items không được để trống")
+    @NotNull(message = "items must not be null")
+    @Valid
     private List<ReqImportItemDTO> items;
 
-    /** Thuế % (ví dụ 10.0 = 10%) */
     private Double tax;
 
-    /** Chiết khấu (số tiền, không phải %) */
     private Double discount;
 
     private String note;

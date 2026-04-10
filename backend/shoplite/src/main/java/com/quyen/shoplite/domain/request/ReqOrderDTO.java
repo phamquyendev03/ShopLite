@@ -1,5 +1,6 @@
 package com.quyen.shoplite.domain.request;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -11,17 +12,16 @@ import java.util.List;
 @Setter
 public class ReqOrderDTO {
 
-    @NotNull(message = "userId không được để trống")
+    @NotNull(message = "userId must not be null")
     private Integer userId;
 
-    /** ID external từ hệ thống bên ngoài (tuỳ chọn) */
     private String requestId;
 
-    /** FK tới Customer, nullable nếu khách lẻ */
     private Integer customerId;
 
     private Double discount;
 
-    @NotEmpty(message = "Đơn hàng phải có ít nhất 1 sản phẩm")
+    @NotEmpty(message = "items must not be empty")
+    @Valid
     private List<ReqOrderItemDTO> items;
 }

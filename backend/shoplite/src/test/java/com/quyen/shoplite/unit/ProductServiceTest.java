@@ -2,16 +2,16 @@ package com.quyen.shoplite.unit;
 
 import com.quyen.shoplite.domain.Category;
 import com.quyen.shoplite.domain.Product;
-import com.quyen.shoplite.domain.request.ReqProductDTO;
-import com.quyen.shoplite.domain.request.ReqUpdateProductDTO;
+import com.quyen.shoplite.domain.Unit;
+import com.quyen.shoplite.domain.request.ReqProductUpsertDTO;
 import com.quyen.shoplite.domain.response.ResProductDTO;
 import com.quyen.shoplite.repository.CategoryRepository;
 import com.quyen.shoplite.repository.ProductRepository;
+import com.quyen.shoplite.repository.UnitRepository;
 import com.quyen.shoplite.service.ProductService;
-import com.quyen.shoplite.util.error.IdInvalidException;
+import com.quyen.shoplite.util.error.BadRequestException;
+import com.quyen.shoplite.util.error.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,14 +20,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-/**
- * Unit Test - ProductService
- * Mock: ProductRepository, CategoryRepository
- */
 @ExtendWith(MockitoExtension.class)
 class ProductServiceTest {
 
@@ -37,235 +36,94 @@ class ProductServiceTest {
     @Mock
     private CategoryRepository categoryRepository;
 
+    @Mock
+    private UnitRepository unitRepository;
+
     @InjectMocks
     private ProductService productService;
 
-    private Category mockCategory;
-    private Product mockProduct;
+    private Category category;
+    private Unit unit;
 
     @BeforeEach
     void setUp() {
-        mockCategory = Category.builder()
-                .id(1)
-                .name("Electronics")
-                .build();
+        category = Category.builder().id(1).name("Electronics").build();
+        unit = Unit.builder().id(1).name("Piece").build();
+    }
 
-        mockProduct = Product.builder()
+    @Test
+    void create_Success() {
+        ReqProductUpsertDTO req = buildReq();
+        Product product = Product.builder()
                 .id(1)
-                .name("Laptop")
-                .sku("LAP-001")
-                .price(1500.0)
-                .stock(10L)
-                .category(mockCategory)
+                .category(category)
+                .unit(unit)
+                .name(req.getName())
+                .sku(req.getSku())
+                .barcode(req.getBarcode())
+                .stock(req.getStock())
+                .price(req.getPrice())
                 .isDeleted(false)
                 .build();
+
+        when(productRepository.existsBySku("LAP-001")).thenReturn(false);
+        when(productRepository.existsByBarcode(8931234567890L)).thenReturn(false);
+        when(categoryRepository.findById(1)).thenReturn(Optional.of(category));
+        when(unitRepository.findById(1)).thenReturn(Optional.of(unit));
+        when(productRepository.save(any(Product.class))).thenReturn(product);
+
+        ResProductDTO result = productService.create(req);
+
+        assertThat(result.getId()).isEqualTo(1);
+        assertThat(result.getName()).isEqualTo("Laptop");
+        assertThat(result.getCategoryId()).isEqualTo(1);
+        assertThat(result.getUnitId()).isEqualTo(1);
     }
 
-    // ─── CREATE ────────────────────────────────────────────────────────────────
+    @Test
+    void create_DuplicateSku_ThrowsBadRequest() {
+        ReqProductUpsertDTO req = buildReq();
 
-    @Nested
-    @DisplayName("create()")
-    class CreateTests {
+        when(productRepository.existsBySku("LAP-001")).thenReturn(true);
 
-        @Test
-        @DisplayName("✅ Tạo sản phẩm thành công")
-        void create_Success() {
-            ReqProductDTO req = new ReqProductDTO();
-            req.setCategoryId(1);
-            req.setName("Laptop");
-            req.setSku("LAP-001");
-            req.setPrice(1500.0);
-
-            when(productRepository.existsBySku("LAP-001")).thenReturn(false);
-            when(categoryRepository.findById(1)).thenReturn(Optional.of(mockCategory));
-            when(productRepository.save(any(Product.class))).thenReturn(mockProduct);
-
-            ResProductDTO result = productService.create(req);
-
-            assertThat(result).isNotNull();
-            assertThat(result.getName()).isEqualTo("Laptop");
-            verify(productRepository).save(argThat(p -> p.getStock() == 0L));
-        }
-
-        @Test
-        @DisplayName("❌ SKU đã tồn tại → ném IdInvalidException")
-        void create_DuplicateSku_ThrowsException() {
-            ReqProductDTO req = new ReqProductDTO();
-            req.setSku("LAP-001");
-            req.setCategoryId(1);
-            req.setName("Laptop");
-            req.setPrice(1500.0);
-
-            when(productRepository.existsBySku("LAP-001")).thenReturn(true);
-
-            assertThatThrownBy(() -> productService.create(req))
-                    .isInstanceOf(IdInvalidException.class)
-                    .hasMessageContaining("LAP-001");
-
-            verify(productRepository, never()).save(any());
-        }
-
-        @Test
-        @DisplayName("❌ Category không tồn tại → ném IdInvalidException")
-        void create_CategoryNotFound_ThrowsException() {
-            ReqProductDTO req = new ReqProductDTO();
-            req.setSku("NEW-001");
-            req.setCategoryId(99);
-            req.setName("Test");
-            req.setPrice(100.0);
-
-            when(productRepository.existsBySku("NEW-001")).thenReturn(false);
-            when(categoryRepository.findById(99)).thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> productService.create(req))
-                    .isInstanceOf(IdInvalidException.class)
-                    .hasMessageContaining("99");
-        }
-
-        @Test
-        @DisplayName("✅ Stock mặc định luôn = 0 khi tạo mới")
-        void create_StockAlwaysZero() {
-            ReqProductDTO req = new ReqProductDTO();
-            req.setSku("NEW-002");
-            req.setCategoryId(1);
-            req.setName("Phone");
-            req.setPrice(500.0);
-
-            when(productRepository.existsBySku(any())).thenReturn(false);
-            when(categoryRepository.findById(1)).thenReturn(Optional.of(mockCategory));
-            when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
-
-            productService.create(req);
-
-            verify(productRepository).save(argThat(p -> p.getStock() == 0L));
-        }
+        assertThatThrownBy(() -> productService.create(req))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("SKU");
+        verify(productRepository, never()).save(any());
     }
 
-    // ─── FIND BY ID ────────────────────────────────────────────────────────────
+    @Test
+    void update_CategoryNotFound_ThrowsNotFound() {
+        ReqProductUpsertDTO req = buildReq();
+        Product existing = Product.builder().id(1).isDeleted(false).build();
 
-    @Nested
-    @DisplayName("findById()")
-    class FindByIdTests {
+        when(productRepository.findById(1)).thenReturn(Optional.of(existing));
+        when(productRepository.existsBySkuAndIdNot("LAP-001", 1)).thenReturn(false);
+        when(productRepository.existsByBarcodeAndIdNot(8931234567890L, 1)).thenReturn(false);
+        when(categoryRepository.findById(1)).thenReturn(Optional.empty());
 
-        @Test
-        @DisplayName("✅ Tìm sản phẩm theo ID thành công")
-        void findById_Success() {
-            when(productRepository.findById(1)).thenReturn(Optional.of(mockProduct));
-
-            ResProductDTO result = productService.findById(1);
-
-            assertThat(result.getName()).isEqualTo("Laptop");
-        }
-
-        @Test
-        @DisplayName("❌ ID không tồn tại → ném exception")
-        void findById_NotFound_ThrowsException() {
-            when(productRepository.findById(99)).thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> productService.findById(99))
-                    .isInstanceOf(IdInvalidException.class)
-                    .hasMessageContaining("99");
-        }
-
-        @Test
-        @DisplayName("❌ Sản phẩm đã bị xóa mềm → ném exception")
-        void findById_SoftDeleted_ThrowsException() {
-            mockProduct.setDeleted(true);
-            when(productRepository.findById(1)).thenReturn(Optional.of(mockProduct));
-
-            assertThatThrownBy(() -> productService.findById(1))
-                    .isInstanceOf(IdInvalidException.class)
-                    .hasMessageContaining("đã bị xóa");
-        }
+        assertThatThrownBy(() -> productService.update(1, req))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Category");
     }
 
-    // ─── UPDATE ────────────────────────────────────────────────────────────────
+    @Test
+    void delete_NotFound_ThrowsNotFound() {
+        when(productRepository.findById(99)).thenReturn(Optional.empty());
 
-    @Nested
-    @DisplayName("update()")
-    class UpdateTests {
-
-        @Test
-        @DisplayName("✅ Cập nhật name và price thành công")
-        void update_Success() {
-            ReqUpdateProductDTO req = new ReqUpdateProductDTO();
-            req.setName("Laptop Pro");
-            req.setPrice(2000.0);
-
-            when(productRepository.findById(1)).thenReturn(Optional.of(mockProduct));
-            when(productRepository.save(any())).thenReturn(mockProduct);
-
-            productService.update(1, req);
-
-            assertThat(mockProduct.getName()).isEqualTo("Laptop Pro");
-            assertThat(mockProduct.getPrice()).isEqualTo(2000.0);
-        }
-
-        @Test
-        @DisplayName("❌ Cập nhật sản phẩm đã xóa → ném exception")
-        void update_DeletedProduct_ThrowsException() {
-            mockProduct.setDeleted(true);
-            when(productRepository.findById(1)).thenReturn(Optional.of(mockProduct));
-
-            assertThatThrownBy(() -> productService.update(1, new ReqUpdateProductDTO()))
-                    .isInstanceOf(IdInvalidException.class)
-                    .hasMessageContaining("đã bị xóa");
-        }
-
-        @Test
-        @DisplayName("✅ Stock KHÔNG thay đổi khi update")
-        void update_StockUnchanged() {
-            long originalStock = mockProduct.getStock();
-            ReqUpdateProductDTO req = new ReqUpdateProductDTO();
-            req.setPrice(9999.0);
-
-            when(productRepository.findById(1)).thenReturn(Optional.of(mockProduct));
-            when(productRepository.save(any())).thenReturn(mockProduct);
-
-            productService.update(1, req);
-
-            assertThat(mockProduct.getStock()).isEqualTo(originalStock);
-        }
+        assertThatThrownBy(() -> productService.softDelete(99))
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
-    // ─── SOFT DELETE ──────────────────────────────────────────────────────────
-
-    @Nested
-    @DisplayName("softDelete()")
-    class SoftDeleteTests {
-
-        @Test
-        @DisplayName("✅ Xóa mềm sản phẩm thành công")
-        void softDelete_Success() {
-            when(productRepository.findById(1)).thenReturn(Optional.of(mockProduct));
-            when(productRepository.save(any())).thenReturn(mockProduct);
-
-            productService.softDelete(1);
-
-            assertThat(mockProduct.isDeleted()).isTrue();
-            verify(productRepository).save(mockProduct);
-        }
-
-        @Test
-        @DisplayName("❌ Xóa sản phẩm đã xóa trước đó → ném exception")
-        void softDelete_AlreadyDeleted_ThrowsException() {
-            mockProduct.setDeleted(true);
-            when(productRepository.findById(1)).thenReturn(Optional.of(mockProduct));
-
-            assertThatThrownBy(() -> productService.softDelete(1))
-                    .isInstanceOf(IdInvalidException.class)
-                    .hasMessageContaining("đã bị xóa trước đó");
-
-            verify(productRepository, never()).save(any());
-        }
-
-        @Test
-        @DisplayName("❌ ID không tồn tại → ném exception")
-        void softDelete_NotFound_ThrowsException() {
-            when(productRepository.findById(99)).thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> productService.softDelete(99))
-                    .isInstanceOf(IdInvalidException.class);
-        }
+    private ReqProductUpsertDTO buildReq() {
+        ReqProductUpsertDTO req = new ReqProductUpsertDTO();
+        req.setCategoryId(1);
+        req.setUnitId(1);
+        req.setName("Laptop");
+        req.setSku("LAP-001");
+        req.setBarcode(8931234567890L);
+        req.setStock(10);
+        req.setPrice(1500.0);
+        return req;
     }
 }

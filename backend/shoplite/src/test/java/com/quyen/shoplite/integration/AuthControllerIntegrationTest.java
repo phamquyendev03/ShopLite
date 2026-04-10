@@ -18,7 +18,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -79,7 +78,7 @@ class AuthControllerIntegrationTest {
                     .password(passwordEncoder.encode("secret123"))
                     .role(adminRole)
                     .isActive(true)
-                    .createdAt(LocalDate.now())
+                    .createdAt(LocalDateTime.now())
                     .build());
         }
     }

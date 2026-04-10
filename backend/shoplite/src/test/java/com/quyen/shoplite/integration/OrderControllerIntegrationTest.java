@@ -5,12 +5,12 @@ import com.quyen.shoplite.domain.Category;
 import com.quyen.shoplite.domain.Permission;
 import com.quyen.shoplite.domain.Product;
 import com.quyen.shoplite.domain.Role;
+import com.quyen.shoplite.domain.Unit;
 import com.quyen.shoplite.domain.User;
 import com.quyen.shoplite.domain.request.ReqLoginDTO;
 import com.quyen.shoplite.domain.request.ReqOrderDTO;
 import com.quyen.shoplite.domain.request.ReqOrderItemDTO;
 import com.quyen.shoplite.repository.*;
-import com.quyen.shoplite.util.constant.PaymentMethodEnum;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -22,7 +22,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -56,6 +55,7 @@ class OrderControllerIntegrationTest {
     @Autowired PermissionRepository permissionRepository;
     @Autowired ProductRepository productRepository;
     @Autowired CategoryRepository categoryRepository;
+    @Autowired UnitRepository unitRepository;
     @Autowired OrderRepository orderRepository;
     @Autowired PasswordEncoder passwordEncoder;
 
@@ -109,7 +109,7 @@ class OrderControllerIntegrationTest {
                     .password(passwordEncoder.encode("admin_pass"))
                     .role(adminRole)
                     .isActive(true)
-                    .createdAt(LocalDate.now())
+                    .createdAt(LocalDateTime.now())
                     .build());
             adminUserId = admin.getId();
         } else {
@@ -123,7 +123,7 @@ class OrderControllerIntegrationTest {
                     .password(passwordEncoder.encode("user_pass"))
                     .role(userRole)
                     .isActive(true)
-                    .createdAt(LocalDate.now())
+                    .createdAt(LocalDateTime.now())
                     .build());
             regularUserId = regular.getId();
         } else {
@@ -136,16 +136,22 @@ class OrderControllerIntegrationTest {
                 .orElseGet(() -> categoryRepository.save(
                         Category.builder().name("IT-Test-Category").build()
                 ));
+        Unit unit = unitRepository.findAll().stream()
+                .findFirst()
+                .orElseGet(() -> unitRepository.save(
+                        Unit.builder().name("piece").description("default test unit").build()
+                ));
 
         if (!productRepository.existsBySku("IT-SKU-001")) {
             Product p = productRepository.save(Product.builder()
                     .name("IT Product")
                     .sku("IT-SKU-001")
-                    .stock(10L)
+                    .stock(10)
                     .price(100.0)
                     .category(category)
+                    .unit(unit)
                     .isDeleted(false)
-                    .createdAt(LocalDate.now())
+                    .createdAt(LocalDateTime.now())
                     .build());
             productId = p.getId();
         } else {
@@ -156,11 +162,12 @@ class OrderControllerIntegrationTest {
             Product oos = productRepository.save(Product.builder()
                     .name("Out-of-Stock Product")
                     .sku("IT-SKU-OOS")
-                    .stock(0L)          // 👈 hết hàng
+                    .stock(0)          // 👈 hết hàng
                     .price(99.0)
                     .category(category)
+                    .unit(unit)
                     .isDeleted(false)
-                    .createdAt(LocalDate.now())
+                    .createdAt(LocalDateTime.now())
                     .build());
             outOfStockProductId = oos.getId();
         } else {
@@ -195,7 +202,7 @@ class OrderControllerIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.id").isNumber())
                 .andExpect(jsonPath("$.data.code", startsWith("ORD-")))
-                .andExpect(jsonPath("$.data.status").value("PENDING"))
+                .andExpect(jsonPath("$.data.status").value("COMPLETED"))
                 .andExpect(jsonPath("$.data.totalAmount").value(200.0))
                 .andExpect(jsonPath("$.data.items", hasSize(1)))
                 .andReturn();
@@ -343,10 +350,10 @@ class OrderControllerIntegrationTest {
         }
 
         mockMvc.perform(patch("/api/v1/orders/" + createdOrderId + "/status")
-                        .param("status", "PAID")
+                        .param("status", "COMPLETED")
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.status").value("PAID"));
+                .andExpect(jsonPath("$.data.status").value("COMPLETED"));
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -376,9 +383,7 @@ class OrderControllerIntegrationTest {
 
         ReqOrderDTO order = new ReqOrderDTO();
         order.setUserId(userId);
-        order.setCustomerName("Test Customer");
         order.setDiscount(0.0);
-        order.setPaymentMethod(PaymentMethodEnum.CASH);
         order.setItems(List.of(item));
         return order;
     }

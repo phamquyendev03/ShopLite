@@ -1,41 +1,37 @@
 package com.quyen.shoplite.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.quyen.shoplite.domain.Permission;
-import com.quyen.shoplite.domain.Role;
-import com.quyen.shoplite.domain.User;
-import com.quyen.shoplite.domain.request.ReqLoginDTO;
+import com.quyen.shoplite.domain.Category;
+import com.quyen.shoplite.domain.Product;
+import com.quyen.shoplite.domain.Unit;
+import com.quyen.shoplite.domain.request.ReqProductUpsertDTO;
+import com.quyen.shoplite.repository.CategoryRepository;
+import com.quyen.shoplite.repository.ProductRepository;
+import com.quyen.shoplite.repository.UnitRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import org.springframework.security.oauth2.jwt.JwsHeader;
-import org.springframework.security.oauth2.jwt.JwtClaimsSet;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.time.LocalDateTime;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/**
- * Integration Test - Auth + Product API với RBAC
- * Dùng H2 in-memory DB (profile "test")
- *
- * Yêu cầu: H2 dependency trong build.gradle.kts:
- *   testRuntimeOnly("com.h2database:h2")
- */
+import org.springframework.security.test.context.support.WithMockUser;
+
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@Transactional
+@WithMockUser
 class ProductControllerIntegrationTest {
 
     @Autowired
@@ -45,240 +41,243 @@ class ProductControllerIntegrationTest {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private JwtEncoder jwtEncoder;
+    private ProductRepository productRepository;
 
     @Autowired
-    private com.quyen.shoplite.repository.UserRepository userRepository;
+    private CategoryRepository categoryRepository;
 
     @Autowired
-    private com.quyen.shoplite.repository.RoleRepository roleRepository;
+    private UnitRepository unitRepository;
 
-    @Autowired
-    private com.quyen.shoplite.repository.PermissionRepository permissionRepository;
+    private Integer categoryItId;
+    private Integer unitItId;
 
-    @org.junit.jupiter.api.BeforeEach
-    void setUpUsers() {
-        // ── Tạo permission "GET /api/v1/products" nếu chưa có ────────────────
-        Permission getProductsPerm = permissionRepository
-                .findByApiPathAndMethod("/api/v1/products", "GET")
-                .orElseGet(() -> permissionRepository.save(
-                        Permission.builder()
-                                .name("View Products")
-                                .apiPath("/api/v1/products")
-                                .method("GET")
-                                .module("Product")
-                                .build()));
+    @BeforeEach
+    void setup() {
+        Category cat = categoryRepository.save(Category.builder().name("CatIT").build());
+        categoryItId = cat.getId();
 
-        // ── STAFF ─────────────────────────────────────────────────────────────
-        if (!userRepository.existsByUsername("staff1")) {
-            // Tìm hoặc tạo role STAFF và gán permission ngay khi tạo mới
-            Role staffRole = roleRepository.findByName("STAFF").orElseGet(() -> {
-                Role r = new Role();
-                r.setName("STAFF");
-                r.setActive(true);
-                r.getPermissions().add(getProductsPerm);   // Gán trước khi save
-                return roleRepository.save(r);
-            });
-            User staff = new User();
-            staff.setUsername("staff1");
-            staff.setPassword("encoded");
-            staff.setRole(staffRole);
-            staff.setActive(true);
-            userRepository.save(staff);
-        }
-
-        // ── USER ──────────────────────────────────────────────────────────────
-        if (!userRepository.existsByUsername("user1")) {
-            Role userRole = roleRepository.findByName("USER").orElseGet(() -> {
-                Role r = new Role();
-                r.setName("USER");
-                r.setActive(true);
-                r.getPermissions().add(getProductsPerm);   // Gán trước khi save
-                return roleRepository.save(r);
-            });
-            User user = new User();
-            user.setUsername("user1");
-            user.setPassword("encoded");
-            user.setRole(userRole);
-            user.setActive(true);
-            userRepository.save(user);
-        }
+        Unit u = unitRepository.save(Unit.builder().name("UnitIT").description("u").build());
+        unitItId = u.getId();
     }
-
-
-    // ─── Helper: tạo JWT token giả ───────────────────────────────────────────
-
-    private String generateToken(String username, String role) {
-        Instant now = Instant.now();
-        JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("shoplite")
-                .issuedAt(now)
-                .expiresAt(now.plus(1, ChronoUnit.HOURS))
-                .subject(username)
-                .claim("role", role)
-                .build();
-        JwsHeader header = JwsHeader.with(MacAlgorithm.HS512).build();
-        return jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
-    }
-
-    private String bearerToken(String username, String role) {
-        return "Bearer " + generateToken(username, role);
-    }
-
-    // ─── AUTH TESTS ─────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("Login thành công → 200 + có accessToken")
-    void login_Success_Returns200() throws Exception {
-        ReqLoginDTO req = new ReqLoginDTO();
-        req.setUsername("admin");
-        req.setPassword("admin123");  // phải khớp với DatabaseInitializer
+    @DisplayName("create product success")
+    void createProduct_Success() throws Exception {
+        ReqProductUpsertDTO req = new ReqProductUpsertDTO();
+        req.setName("Prod IT");
+        req.setSku("SKUIT");
+        req.setBarcode(111222L);
+        req.setCategoryId(categoryItId);
+        req.setUnitId(unitItId);
+        req.setStock(50);
+        req.setPrice(10.5);
 
-        mockMvc.perform(post("/api/v1/auth/login")
+        mockMvc.perform(post("/api/v1/products")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
-                .andDo(print())
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.name").value("Prod IT"))
+                .andExpect(jsonPath("$.data.categoryId").value(categoryItId));
+
+        assertThat(productRepository.existsBySku("SKUIT")).isTrue();
+    }
+
+    @Test
+    @DisplayName("create product with missing category failure")
+    void createProduct_NotFoundCategoryFailure() throws Exception {
+        ReqProductUpsertDTO req = new ReqProductUpsertDTO();
+        req.setName("Prod IT");
+        req.setSku("SKUIT");
+        req.setBarcode(111222L);
+        req.setCategoryId(9999);
+        req.setUnitId(unitItId);
+        req.setStock(50);
+        req.setPrice(10.5);
+
+        mockMvc.perform(post("/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.statusCode").value(404))
+                .andExpect(jsonPath("$.message").value("Category not found with id=9999"));
+    }
+
+    @Test
+    @DisplayName("create product with missing unit failure")
+    void createProduct_NotFoundUnitFailure() throws Exception {
+        ReqProductUpsertDTO req = new ReqProductUpsertDTO();
+        req.setName("Prod IT");
+        req.setSku("SKUIT");
+        req.setBarcode(111222L);
+        req.setCategoryId(categoryItId);
+        req.setUnitId(9999);
+        req.setStock(50);
+        req.setPrice(10.5);
+
+        mockMvc.perform(post("/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.statusCode").value(404))
+                .andExpect(jsonPath("$.message").value("Unit not found with id=9999"));
+    }
+
+    @Test
+    @DisplayName("create product duplicate sku failure")
+    void createProduct_DuplicateSkuFailure() throws Exception {
+        productRepository.save(Product.builder()
+                .category(categoryRepository.findById(categoryItId).get())
+                .unit(unitRepository.findById(unitItId).get())
+                .name("Exst Prod")
+                .sku("SKUIT")
+                .barcode(999L)
+                .stock(10)
+                .price(10.0)
+                .createdAt(LocalDateTime.now())
+                .build());
+
+        ReqProductUpsertDTO req = new ReqProductUpsertDTO();
+        req.setName("Prod IT");
+        req.setSku("SKUIT");
+        req.setBarcode(111222L);
+        req.setCategoryId(categoryItId);
+        req.setUnitId(unitItId);
+        req.setStock(50);
+        req.setPrice(10.5);
+
+        mockMvc.perform(post("/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.statusCode").value(400))
+                .andExpect(jsonPath("$.message").value("SKU already exists: SKUIT"));
+    }
+
+    @Test
+    @DisplayName("create product duplicate barcode failure")
+    void createProduct_DuplicateBarcodeFailure() throws Exception {
+        productRepository.save(Product.builder()
+                .category(categoryRepository.findById(categoryItId).get())
+                .unit(unitRepository.findById(unitItId).get())
+                .name("Exst Prod")
+                .sku("SKU999")
+                .barcode(111222L)
+                .stock(10)
+                .price(10.0)
+                .createdAt(LocalDateTime.now())
+                .build());
+
+        ReqProductUpsertDTO req = new ReqProductUpsertDTO();
+        req.setName("Prod IT");
+        req.setSku("SKUIT");
+        req.setBarcode(111222L);
+        req.setCategoryId(categoryItId);
+        req.setUnitId(unitItId);
+        req.setStock(50);
+        req.setPrice(10.5);
+
+        mockMvc.perform(post("/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.statusCode").value(400))
+                .andExpect(jsonPath("$.message").value("Barcode already exists: 111222"));
+    }
+
+    @Test
+    @DisplayName("create product with negative price failure")
+    void createProduct_NegativePriceFailure() throws Exception {
+        ReqProductUpsertDTO req = new ReqProductUpsertDTO();
+        req.setName("Prod IT");
+        req.setSku("SKUIT");
+        req.setBarcode(111222L);
+        req.setCategoryId(categoryItId);
+        req.setUnitId(unitItId);
+        req.setStock(50);
+        req.setPrice(-10.5); // Invalid
+
+        mockMvc.perform(post("/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.statusCode").value(400))
+                .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    @Test
+    @DisplayName("get product by id success")
+    void getProduct_Success() throws Exception {
+        Product p = productRepository.save(Product.builder()
+                .category(categoryRepository.findById(categoryItId).get())
+                .unit(unitRepository.findById(unitItId).get())
+                .name("TestProd")
+                .sku("SKU12345")
+                .stock(10)
+                .price(10.0)
+                .createdAt(LocalDateTime.now())
+                .isDeleted(false)
+                .build());
+
+        mockMvc.perform(get("/api/v1/products/" + p.getId()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.accessToken").exists())
-                .andExpect(jsonPath("$.data.user.roleName").value("ADMIN"));
+                .andExpect(jsonPath("$.data.id").value(p.getId()))
+                .andExpect(jsonPath("$.data.name").value("TestProd"));
     }
 
     @Test
-    @DisplayName("Login sai password → 401 hoặc 400")
-    void login_WrongPassword_ReturnsError() throws Exception {
-        ReqLoginDTO req = new ReqLoginDTO();
-        req.setUsername("admin");
-        req.setPassword("wrongpass");
+    @DisplayName("update product success")
+    void updateProduct_Success() throws Exception {
+        Product p = productRepository.save(Product.builder()
+                .category(categoryRepository.findById(categoryItId).get())
+                .unit(unitRepository.findById(unitItId).get())
+                .name("OldProd")
+                .sku("SKU111")
+                .stock(10)
+                .price(10.0)
+                .createdAt(LocalDateTime.now())
+                .isDeleted(false)
+                .build());
 
-        mockMvc.perform(post("/api/v1/auth/login")
+        ReqProductUpsertDTO req = new ReqProductUpsertDTO();
+        req.setName("UpdatedProd");
+        req.setSku("SKU222");
+        req.setBarcode(null);
+        req.setCategoryId(categoryItId);
+        req.setUnitId(unitItId);
+        req.setStock(20);
+        req.setPrice(25.0);
+
+        mockMvc.perform(put("/api/v1/products/" + p.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
-                .andDo(print())
-                .andExpect(status().is4xxClientError());
-    }
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.name").value("UpdatedProd"))
+                .andExpect(jsonPath("$.data.sku").value("SKU222"));
 
-    // ─── NO TOKEN / INVALID TOKEN ────────────────────────────────────────────
-
-    @Test
-    @DisplayName("Không có token → GET /api/v1/products → 401")
-    void getProducts_NoToken_Returns401() throws Exception {
-        mockMvc.perform(get("/api/v1/products"))
-                .andDo(print())
-                .andExpect(status().is4xxClientError());
+        Product updated = productRepository.findById(p.getId()).orElseThrow();
+        assertThat(updated.getName()).isEqualTo("UpdatedProd");
+        assertThat(updated.getSku()).isEqualTo("SKU222");
     }
 
     @Test
-    @DisplayName("Token sai/giả mạo → 401")
-    void getProducts_InvalidToken_Returns401() throws Exception {
-        mockMvc.perform(get("/api/v1/products")
-                        .header("Authorization", "Bearer this.is.not.a.valid.token"))
-                .andDo(print())
-                .andExpect(status().is4xxClientError());
-    }
+    @DisplayName("delete product success")
+    void deleteProduct_Success() throws Exception {
+        Product p = productRepository.save(Product.builder()
+                .category(categoryRepository.findById(categoryItId).get())
+                .unit(unitRepository.findById(unitItId).get())
+                .name("ToDelProd")
+                .sku("SKUDEL")
+                .stock(10)
+                .price(10.0)
+                .createdAt(LocalDateTime.now())
+                .isDeleted(false)
+                .build());
 
-    @Test
-    @DisplayName("Token hết hạn → 401")
-    void getProducts_ExpiredToken_Returns401() throws Exception {
-        // Tạo token đã hết hạn (expiresAt trong quá khứ)
-        Instant past = Instant.now().minus(2, ChronoUnit.HOURS);
-        JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("shoplite")
-                .issuedAt(past.minus(1, ChronoUnit.HOURS))
-                .expiresAt(past)
-                .subject("admin")
-                .claim("role", "ADMIN")
-                .build();
-        JwsHeader header = JwsHeader.with(MacAlgorithm.HS512).build();
-        String expiredToken = jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
+        mockMvc.perform(delete("/api/v1/products/" + p.getId()))
+                .andExpect(status().isNoContent());
 
-        mockMvc.perform(get("/api/v1/products")
-                        .header("Authorization", "Bearer " + expiredToken))
-                .andExpect(status().is4xxClientError());
-    }
-
-    // ─── PRODUCT RBAC TESTS ──────────────────────────────────────────────────
-
-    @Test
-    @DisplayName("ADMIN GET /api/v1/products → 200")
-    void getProducts_Admin_Returns200() throws Exception {
-        mockMvc.perform(get("/api/v1/products")
-                        .header("Authorization", bearerToken("admin", "ADMIN")))
-                .andDo(print())
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    @DisplayName("STAFF GET /api/v1/products → 200")
-    void getProducts_Staff_Returns200() throws Exception {
-        mockMvc.perform(get("/api/v1/products")
-                        .header("Authorization", bearerToken("staff1", "STAFF")))
-                .andDo(print())
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    @DisplayName("USER GET /api/v1/products → 200 (xem được)")
-    void getProducts_User_Returns200() throws Exception {
-        mockMvc.perform(get("/api/v1/products")
-                        .header("Authorization", bearerToken("user1", "USER")))
-                .andDo(print())
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    @DisplayName("USER DELETE /api/v1/products/1 → 403 (không có quyền xóa)")
-    void deleteProduct_User_Returns403() throws Exception {
-        mockMvc.perform(delete("/api/v1/products/1")
-                        .header("Authorization", bearerToken("user1", "USER")))
-                .andDo(print())
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    @DisplayName("STAFF DELETE /api/v1/products/1 → 403")
-    void deleteProduct_Staff_Returns403() throws Exception {
-        mockMvc.perform(delete("/api/v1/products/1")
-                        .header("Authorization", bearerToken("staff1", "STAFF")))
-                .andDo(print())
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    @DisplayName("ADMIN DELETE /api/v1/products/999 → 400 (not found, not 403)")
-    void deleteProduct_Admin_ProductNotFound_Returns400() throws Exception {
-        // ADMIN có quyền, nhưng product 999 không tồn tại → IdInvalidException → 400
-        mockMvc.perform(delete("/api/v1/products/999")
-                        .header("Authorization", bearerToken("admin", "ADMIN")))
-                .andDo(print())
-                .andExpect(status().isBadRequest());
-    }
-
-    // ─── USER MANAGEMENT (ADMIN ONLY) ────────────────────────────────────────
-
-    @Test
-    @DisplayName("ADMIN GET /api/v1/users → 200")
-    void getUsers_Admin_Returns200() throws Exception {
-        mockMvc.perform(get("/api/v1/users")
-                        .header("Authorization", bearerToken("admin", "ADMIN")))
-                .andDo(print())
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    @DisplayName("USER GET /api/v1/users → 403 (Spring Security level)")
-    void getUsers_User_Returns403() throws Exception {
-        mockMvc.perform(get("/api/v1/users")
-                        .header("Authorization", bearerToken("user1", "USER")))    
-                .andDo(print())
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    @DisplayName("STAFF GET /api/v1/users → 403")
-    void getUsers_Staff_Returns403() throws Exception {
-        mockMvc.perform(get("/api/v1/users")
-                        .header("Authorization", bearerToken("staff1", "STAFF")))
-                .andDo(print())
-                .andExpect(status().isForbidden());
+        Product deleted = productRepository.findById(p.getId()).orElseThrow();
+        assertThat(deleted.isDeleted()).isTrue();
     }
 }

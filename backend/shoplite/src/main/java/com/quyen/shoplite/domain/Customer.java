@@ -19,7 +19,7 @@ public class Customer {
     @Column(nullable = false, length = 200)
     private String name;
 
-    @Column(length = 20)
+    @Column(nullable = false, unique = true, length = 20)
     private String phone;
 
     /** Loyalty / reward points */

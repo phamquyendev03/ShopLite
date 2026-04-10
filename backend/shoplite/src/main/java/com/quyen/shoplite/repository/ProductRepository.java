@@ -16,6 +16,10 @@ public interface ProductRepository extends JpaRepository<Product, Integer>,
 
     boolean existsBySkuAndIdNot(String sku, Integer id);
 
+    boolean existsByBarcode(Long barcode);
+
+    boolean existsByBarcodeAndIdNot(Long barcode, Integer id);
+
     List<Product> findAllByIsDeletedFalse();
 
     List<Product> findAllByCategoryId(Integer categoryId);

@@ -5,6 +5,7 @@ import com.quyen.shoplite.domain.response.ResOrderDTO;
 import com.quyen.shoplite.service.OrderService;
 import com.quyen.shoplite.util.annotation.ApiMessage;
 import com.quyen.shoplite.util.constant.StatusEnum;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,25 +21,25 @@ public class OrderController {
     private final OrderService orderService;
 
     @PostMapping
-    @ApiMessage("Tạo đơn hàng thành công")
-    public ResponseEntity<ResOrderDTO> create(@RequestBody ReqOrderDTO req) {
+    @ApiMessage("Create order success")
+    public ResponseEntity<ResOrderDTO> create(@Valid @RequestBody ReqOrderDTO req) {
         return ResponseEntity.status(HttpStatus.CREATED).body(orderService.create(req));
     }
 
     @GetMapping("/{id}")
-    @ApiMessage("Lấy thông tin đơn hàng")
+    @ApiMessage("Get order success")
     public ResponseEntity<ResOrderDTO> findById(@PathVariable("id") Integer id) {
         return ResponseEntity.ok(orderService.findById(id));
     }
 
     @GetMapping
-    @ApiMessage("Danh sách đơn hàng")
+    @ApiMessage("Get orders success")
     public ResponseEntity<List<ResOrderDTO>> findAll() {
         return ResponseEntity.ok(orderService.findAll());
     }
 
     @PatchMapping("/{id}/status")
-    @ApiMessage("Cập nhật trạng thái đơn hàng")
+    @ApiMessage("Update order status success")
     public ResponseEntity<ResOrderDTO> updateStatus(
             @PathVariable("id") Integer id,
             @RequestParam("status") StatusEnum status) {

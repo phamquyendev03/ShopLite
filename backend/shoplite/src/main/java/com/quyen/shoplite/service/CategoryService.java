@@ -1,35 +1,41 @@
 package com.quyen.shoplite.service;
 
 import com.quyen.shoplite.domain.Category;
-import com.quyen.shoplite.domain.request.ReqCategoryDTO;
+import com.quyen.shoplite.domain.request.ReqCategoryUpsertDTO;
 import com.quyen.shoplite.domain.response.ResCategoryDTO;
 import com.quyen.shoplite.repository.CategoryRepository;
 import com.quyen.shoplite.util.DTOMapper;
-import com.quyen.shoplite.util.error.IdInvalidException;
-import lombok.RequiredArgsConstructor;
+import com.quyen.shoplite.util.error.BadRequestException;
+import com.quyen.shoplite.util.error.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
+@Transactional
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
 
-    public ResCategoryDTO create(ReqCategoryDTO req) {
-        if (categoryRepository.existsByName(req.getName())) {
-            throw new IdInvalidException("Danh mục '" + req.getName() + "' đã tồn tại");
+    public CategoryService(CategoryRepository categoryRepository) {
+        this.categoryRepository = categoryRepository;
+    }
+
+    public ResCategoryDTO create(ReqCategoryUpsertDTO req) {
+        String normalizedName = req.getName().trim();
+        if (categoryRepository.existsByName(normalizedName)) {
+            throw new BadRequestException("Category name already exists: " + normalizedName);
         }
         Category category = Category.builder()
-                .name(req.getName())
+                .name(normalizedName)
                 .build();
         return DTOMapper.toResCategoryDTO(categoryRepository.save(category));
     }
 
     public ResCategoryDTO findById(Integer id) {
         Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new IdInvalidException("Không tìm thấy Category với id=" + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id=" + id));
         return DTOMapper.toResCategoryDTO(category);
     }
 
@@ -39,17 +45,20 @@ public class CategoryService {
                 .toList();
     }
 
-    public ResCategoryDTO update(Integer id, ReqCategoryDTO req) {
+    public ResCategoryDTO update(Integer id, ReqCategoryUpsertDTO req) {
         Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new IdInvalidException("Không tìm thấy Category với id=" + id));
-        category.setName(req.getName());
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id=" + id));
+        String normalizedName = req.getName().trim();
+        if (categoryRepository.existsByNameAndIdNot(normalizedName, id)) {
+            throw new BadRequestException("Category name already exists: " + normalizedName);
+        }
+        category.setName(normalizedName);
         return DTOMapper.toResCategoryDTO(categoryRepository.save(category));
     }
 
     public void delete(Integer id) {
-        if (!categoryRepository.existsById(id)) {
-            throw new IdInvalidException("Không tìm thấy Category với id=" + id);
-        }
-        categoryRepository.deleteById(id);
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id=" + id));
+        categoryRepository.delete(category);
     }
 }

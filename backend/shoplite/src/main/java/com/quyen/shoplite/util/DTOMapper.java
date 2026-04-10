@@ -57,6 +57,7 @@ public class DTOMapper {
         dto.setId(product.getId());
         dto.setName(product.getName());
         dto.setSku(product.getSku());
+        dto.setBarcode(product.getBarcode());
         dto.setStock(product.getStock());
         dto.setPrice(product.getPrice());
         dto.setDeleted(product.isDeleted());
@@ -64,6 +65,10 @@ public class DTOMapper {
         if (product.getCategory() != null) {
             dto.setCategoryId(product.getCategory().getId());
             dto.setCategoryName(product.getCategory().getName());
+        }
+        if (product.getUnit() != null) {
+            dto.setUnitId(product.getUnit().getId());
+            dto.setUnitName(product.getUnit().getName());
         }
         return dto;
     }

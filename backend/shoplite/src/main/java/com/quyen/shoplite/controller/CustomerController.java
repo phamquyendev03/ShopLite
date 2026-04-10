@@ -1,0 +1,52 @@
+package com.quyen.shoplite.controller;
+
+import com.quyen.shoplite.domain.request.ReqCustomerUpsertDTO;
+import com.quyen.shoplite.domain.response.ResCustomerDTO;
+import com.quyen.shoplite.service.CustomerService;
+import com.quyen.shoplite.util.annotation.ApiMessage;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/v1/customers")
+@RequiredArgsConstructor
+public class CustomerController {
+
+    private final CustomerService customerService;
+
+    @PostMapping
+    @ApiMessage("Create customer success")
+    public ResponseEntity<ResCustomerDTO> create(@Valid @RequestBody ReqCustomerUpsertDTO req) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(customerService.create(req));
+    }
+
+    @GetMapping("/{id}")
+    @ApiMessage("Get customer success")
+    public ResponseEntity<ResCustomerDTO> findById(@PathVariable Integer id) {
+        return ResponseEntity.ok(customerService.findById(id));
+    }
+
+    @GetMapping
+    @ApiMessage("Get customers success")
+    public ResponseEntity<List<ResCustomerDTO>> findAll() {
+        return ResponseEntity.ok(customerService.findAll());
+    }
+
+    @PutMapping("/{id}")
+    @ApiMessage("Update customer success")
+    public ResponseEntity<ResCustomerDTO> update(@PathVariable Integer id, @Valid @RequestBody ReqCustomerUpsertDTO req) {
+        return ResponseEntity.ok(customerService.update(id, req));
+    }
+
+    @DeleteMapping("/{id}")
+    @ApiMessage("Delete customer success")
+    public ResponseEntity<Void> delete(@PathVariable Integer id) {
+        customerService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+}

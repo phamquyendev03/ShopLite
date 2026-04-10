@@ -6,7 +6,6 @@ import com.quyen.shoplite.domain.request.ReqOrderItemDTO;
 import com.quyen.shoplite.domain.response.ResOrderDTO;
 import com.quyen.shoplite.repository.*;
 import com.quyen.shoplite.service.OrderService;
-import com.quyen.shoplite.util.constant.PaymentMethodEnum;
 import com.quyen.shoplite.util.error.IdInvalidException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -45,7 +44,7 @@ class OrderServiceTest {
 
         mockProduct = Product.builder()
                 .id(1).name("Laptop").sku("LAP-001")
-                .price(1500.0).stock(10L).isDeleted(false).build();
+                .price(1500.0).stock(10).isDeleted(false).build();
     }
 
     private ReqOrderDTO buildOrderRequest(int productId, long qty, double price, double discount) {
@@ -56,8 +55,6 @@ class OrderServiceTest {
 
         ReqOrderDTO req = new ReqOrderDTO();
         req.setUserId(1);
-        req.setCustomerName("Test Customer");
-        req.setPaymentMethod(PaymentMethodEnum.CASH);
         req.setDiscount(discount);
         req.setItems(List.of(item));
         return req;
@@ -81,7 +78,7 @@ class OrderServiceTest {
 
         assertThat(result).isNotNull();
         // Stock phải giảm từ 10 → 8
-        assertThat(mockProduct.getStock()).isEqualTo(8L);
+        assertThat(mockProduct.getStock()).isEqualTo(8);
         verify(inventoryLogsRepository).save(any());
     }
 
@@ -107,7 +104,7 @@ class OrderServiceTest {
     @Test
     @DisplayName("❌ Tồn kho không đủ → ném IdInvalidException")
     void create_InsufficientStock_ThrowsException() {
-        mockProduct.setStock(1L);  // chỉ còn 1
+        mockProduct.setStock(1);  // chỉ còn 1
         ReqOrderDTO req = buildOrderRequest(1, 5, 1500.0, 0);  // đặt 5
 
         when(userRepository.findById(1)).thenReturn(Optional.of(mockUser));

@@ -7,7 +7,8 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ReqCategoryDTO {
+public class ReqCategoryUpsertDTO {
+
     @NotBlank(message = "name must not be blank")
     @Size(max = 150, message = "name must be less than or equal to 150 characters")
     private String name;

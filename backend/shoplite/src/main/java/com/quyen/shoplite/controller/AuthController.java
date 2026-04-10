@@ -5,6 +5,7 @@ import com.quyen.shoplite.domain.response.ResLoginDTO;
 import com.quyen.shoplite.service.AuthService;
 import com.quyen.shoplite.util.annotation.ApiMessage;
 import com.quyen.shoplite.util.error.IdInvalidException;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,40 +19,27 @@ public class AuthController {
 
     private final AuthService authService;
 
-    /**
-     * POST /api/v1/auth/login
-     * Body: { "username": "...", "password": "..." }
-     * Response: { "statusCode": 200, "message": "...", "data": { "accessToken", "refreshToken", "user" } }
-     */
     @PostMapping("/login")
-    @ApiMessage("Đăng nhập thành công")
-    public ResponseEntity<ResLoginDTO> login(@RequestBody ReqLoginDTO req) {
+    @ApiMessage("Login success")
+    public ResponseEntity<ResLoginDTO> login(@Valid @RequestBody ReqLoginDTO req) {
         ResLoginDTO result = authService.login(req.getUsername(), req.getPassword());
         return ResponseEntity.ok(result);
     }
 
-    /**
-     * POST /api/v1/auth/refresh
-     * Header: Authorization: Bearer <refresh_token>
-     * Spring OAuth2 Resource Server sẽ xác thực refresh token trước khi vào đây.
-     */
     @PostMapping("/refresh")
-    @ApiMessage("Làm mới token thành công")
+    @ApiMessage("Refresh token success")
     public ResponseEntity<ResLoginDTO> refresh(@AuthenticationPrincipal Jwt refreshJwt) {
         if (refreshJwt == null) {
-            throw new IdInvalidException("Refresh token không hợp lệ");
+            throw new IdInvalidException("Refresh token is invalid");
         }
         return ResponseEntity.ok(authService.refresh(refreshJwt));
     }
 
-    /**
-     * GET /api/v1/auth/me - lấy thông tin user hiện tại
-     */
     @GetMapping("/me")
-    @ApiMessage("Lấy thông tin người dùng hiện tại")
+    @ApiMessage("Get current user success")
     public ResponseEntity<Object> getCurrentUser(@AuthenticationPrincipal Jwt jwt) {
         if (jwt == null) {
-            throw new IdInvalidException("Chưa đăng nhập");
+            throw new IdInvalidException("User is not authenticated");
         }
         return ResponseEntity.ok(jwt.getSubject());
     }
